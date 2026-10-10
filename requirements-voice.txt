@@ -1,0 +1,28 @@
+# Optional — only needed for the floating Voice to Urdu button. The rest of
+# the app (typing, fonts, export, Roman-Urdu auto-convert, curves,
+# everything else) works fully without these.
+#
+#   pip install -r requirements-voice.txt
+#   python download_model.py      (recommended, see below)
+#
+# faster-whisper needs a working PortAudio install for its sounddevice
+# dependency to record from a microphone:
+#   Ubuntu/Debian:  sudo apt install portaudio19-dev
+#   macOS:          brew install portaudio
+#   Windows:        no extra step, sounddevice ships a prebuilt wheel
+#
+# Uses Systran/faster-whisper-medium — OpenAI's generic multilingual
+# Whisper "medium" model, converted to faster-whisper's native format.
+# See the top of voice_to_urdu.py for smaller/faster or larger/more-
+# accurate alternatives (MODEL_ID) if this default isn't right for your
+# machine or your accuracy needs.
+#
+# Run `python download_model.py` once to download it into a plain local
+# folder permanently (roughly 1.4GB). Skip that and the app still works —
+# it just falls back to faster-whisper's own lazy first-use download into
+# the HuggingFace cache, which relies on symlinks unsupported without
+# Developer Mode or admin rights on Windows (produces a harmless-but-
+# alarming-looking warning every startup).
+
+faster-whisper>=1.0
+sounddevice>=0.4
