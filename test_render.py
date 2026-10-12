@@ -132,4 +132,5 @@ print(f"  ok  same {char_total} glyphs, same overall bounding box, "
 svg_bytes = exporter.render_svg_bytes(doc, canvas.page_width, canvas.page_height, canvas.background_color())
 assert isinstance(svg_bytes, bytes) and len(svg_bytes) > 500
 assert b"<svg" in svg_bytes[:300]
-print(f"  ok  render_svg_bytes() produced {len(svg_bytes)} bytes of valid-looking SVG")
+print(f"  ok  render_svg_bytes() produced {len(svg_bytes)} bytes of valid-looking SVG NOT OK")
+
