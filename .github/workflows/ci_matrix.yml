@@ -6,7 +6,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # Pinned to ubuntu-24.04 to bypass the breaking Ubuntu 26 OS migration errors
         os: [ubuntu-24.04, windows-latest]
 
     steps:
@@ -40,27 +39,32 @@ jobs:
               Image.new('RGBA', (256, 256), color=(0,0,0,0)).save('icons/appicon.ico', format='ICO')
           "
 
+      # Writes a global patch file on Windows that intercepts all unlinks across subprocesses
+      - name: Configure Windows File-Lock Patch
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          cat << 'EOF' > patch_win_unlink.py
+          import pathlib
+          original_unlink = pathlib.Path.unlink
+          def safe_unlink(self, missing_ok=False):
+              try:
+                  original_unlink(self, missing_ok=missing_ok)
+              except PermissionError:
+                  pass
+          pathlib.Path.unlink = safe_unlink
+          EOF
+          echo "Global Windows process patch file generated."
+
       # Runs your verification suite uniformly across both systems
-      # Patching pathlib.Path.unlink inline on Windows safely ignores background file locks
+      # PYTHONSTARTUP forces every spawned test subprocess to inherit the unlink override
       - name: Run Tests
         env: 
           QT_QPA_PLATFORM: offscreen
           PYTHONUTF8: "1"
+          PYTHONSTARTUP: ${{ matrix.os == 'windows-latest' && 'patch_win_unlink.py' || '' }}
         run: |
-          python -c "
-          import glob, subprocess, sys, pathlib
-          
-          if sys.platform == 'win32':
-              original_unlink = pathlib.Path.unlink
-              def safe_unlink(self, missing_ok=False):
-                  try:
-                      original_unlink(self, missing_ok=missing_ok)
-                  except PermissionError:
-                      print(f'Muted background file lock error on: {self}')
-              pathlib.Path.unlink = safe_unlink
-
-          [subprocess.run([sys.executable, t], check=True) for t in glob.glob('test_*.py')]
-          "
+          python -c "import glob, subprocess, sys; [subprocess.run([sys.executable, t], check=True) for t in glob.glob('test_*.py')]"
 
       # Linux Build Step
       - name: Build Application (Ubuntu)
