@@ -20,30 +20,48 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get update && sudo apt-get install -y libegl1 libxkbcommon0 libdbus-1-3 fonts-dejavu-core ghostscript
 
+      # Installs Pillow to dynamically fallback if icon assets are uncommitted
       - name: Install Dependencies
         run: |
           pip install -r requirements.txt
-          pip install pyinstaller
+          pip install pyinstaller Pillow
+
+      # Safety Step: Ensures icons folder and basic image placeholders exist if not committed yet
+      - name: Ensure Asset Folders Exist
+        shell: bash
+        run: |
+          mkdir -p icons
+          python -c "
+          import os
+          from PIL import Image
+          if not os.path.exists('icons/appicon.png'):
+              Image.new('RGBA', (256, 256), color=(0,0,0,0)).save('icons/appicon.png')
+          if not os.path.exists('icons/appicon.ico'):
+              Image.new('RGBA', (256, 256), color=(0,0,0,0)).save('icons/appicon.ico', format='ICO')
+          "
 
       # Runs your verification suite uniformly across both systems
+      # PYTHONUTF8: 1 forces Windows to output Arabic/Urdu text cleanly without cp1252 crashing
       - name: Run Tests
-        env: { QT_QPA_PLATFORM: offscreen }
+        env: 
+          QT_QPA_PLATFORM: offscreen
+          PYTHONUTF8: "1"
         run: |
           python -c "import glob, subprocess, sys; [subprocess.run([sys.executable, t], check=True) for t in glob.glob('test_*.py')]"
 
-      # Linux Build Step: Pulls directly from your icons/ folder using standard colons (:)
+      # Linux Build Step
       - name: Build Application (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
           pyinstaller --name URDUTYPEWRITTER --windowed --onedir --clean --icon=icons/appicon.png --add-data "icons/appicon.png:icons" main.py
 
-      # Windows Build Step: Pulls directly from your icons/ folder using semicolons (;)
+      # Windows Build Step
       - name: Build Application (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           pyinstaller --name URDUTYPEWRITTER --windowed --onedir --clean --icon=icons/appicon.ico --add-data "icons/appicon.ico;icons" main.py
 
-      # Compresses and saves the platform-specific output directory automatically
+      # Packages and uploads the build folders safely
       - name: Upload Built Application
         uses: actions/upload-artifact@v4
         with:
