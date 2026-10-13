@@ -57,14 +57,23 @@ jobs:
           echo "Global Windows process patch file generated."
 
       # Runs your verification suite uniformly across both systems
-      # PYTHONSTARTUP forces every spawned test subprocess to inherit the unlink override
+      # Excludes voice/audio tests explicitly to bypass downloading the 1.4GB model
       - name: Run Tests
         env: 
           QT_QPA_PLATFORM: offscreen
           PYTHONUTF8: "1"
           PYTHONSTARTUP: ${{ matrix.os == 'windows-latest' && 'patch_win_unlink.py' || '' }}
+          SKIP_VOICE_DOWNLOAD: "1" # Environment flag if your code supports conditional skipping
         run: |
-          python -c "import glob, subprocess, sys; [subprocess.run([sys.executable, t], check=True) for t in glob.glob('test_*.py')]"
+          python -c "
+          import glob, subprocess, sys
+          for t in glob.glob('test_*.py'):
+              # Explicitly skip any test targeting voice features or downloading large files
+              if 'voice' in t.lower() or 'audio' in t.lower():
+                  print(f'Skipping voice test file: {t}')
+                  continue
+              subprocess.run([sys.executable, t], check=True)
+          "
 
       # Linux Build Step
       - name: Build Application (Ubuntu)
