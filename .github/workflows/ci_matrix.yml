@@ -1,0 +1,79 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  test-and-build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with: 
+          python-version: "3.12" 
+          cache: pip
+
+      - name: Install Linux System Dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libxkbcommon0 libdbus-1-3 fonts-dejavu-core ghostscript
+
+      - name: Install Build and Project Dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller Pillow cairosvg
+
+      # Windows Icon Logic: Converts your icons/app-icon.svg into appicon.ico
+      - name: Generate Windows Icon Asset from SVG
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          python -c "
+          import os
+          from PIL import Image
+          import cairosvg
+          svg_path = 'icons/app-icon.svg'
+          if os.path.exists(svg_path):
+              cairosvg.svg2png(url=svg_path, write_to='appicon.png', output_width=256, output_height=256)
+              Image.open('appicon.png').save('appicon.ico', format='ICO', sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
+          else:
+              Image.new('RGBA', (256, 256), color=(0, 0, 0, 0)).save('appicon.ico', format='ICO')
+          "
+
+      # Linux Icon Logic: Converts icons/app-icon.svg to appicon.png for desktop shortcut compatibility
+      - name: Generate Linux Icon Asset from SVG
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          python -c "
+          import os
+          import cairosvg
+          svg_path = 'icons/app-icon.svg'
+          if os.path.exists(svg_path):
+              cairosvg.svg2png(url=svg_path, write_to='appicon.png', output_width=256, output_height=256)
+          "
+
+      - name: Run Tests
+        env: { QT_QPA_PLATFORM: offscreen }
+        run: |
+          python -c "import glob, subprocess, sys; [subprocess.run([sys.executable, t], check=True) for t in glob.glob('test_*.py')]"
+
+      # Linux Build Step: Bundles the app and embeds the PNG icon asset
+      - name: Build Application (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          pyinstaller --name URDUTYPEWRITTER --windowed --onedir --clean --icon=appicon.png --add-data "appicon.png:." main.py
+
+      # Windows Build Step: Uses your exact icon injection arguments (Note the ';' path separator instead of ':')
+      - name: Build Application (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          pyinstaller --name URDUTYPEWRITTER --windowed --onedir --clean --icon=appicon.ico --add-data "appicon.ico;." main.py
+
+      # Saves the individual outputs separately so you get distinct zip packages in your workflow run
+      - name: Upload Built Application
+        uses: actions/upload-artifact@v4
+        with:
+          name: URDUTYPEWRITTER-${{ matrix.os }}
+          path: dist/URDUTYPEWRITTER/
