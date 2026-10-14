@@ -1,0 +1,16 @@
+name: Release
+on: { push: { tags: ["v*"] } }
+permissions: { contents: write }
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements.txt pyinstaller
+      - run: pyinstaller --noconfirm --windowed --name UrduTypewriter --add-data "fonts;fonts" --add-data "icons;icons" main.py
+      - run: choco install innosetup -y --no-progress
+      - run: iscc installer\UrduTypewriter.iss
+      - uses: softprops/action-gh-release@v2
+        with: { files: release/*.exe }
