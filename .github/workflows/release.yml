@@ -1,16 +1,79 @@
 name: Release
-on: { push: { tags: ["v*"] } }
-permissions: { contents: write }
+on:
+  push:
+    tags:
+      - "v*" # Triggers exclusively when you push a tag like v2.3, v2.4, etc.
+
+permissions:
+  contents: write # Needed to create a GitHub Release and upload installer files
+
 jobs:
   build:
     runs-on: windows-latest
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
-      - run: pip install -r requirements.txt pyinstaller
-      - run: pyinstaller --noconfirm --windowed --name UrduTypewriter --add-data "fonts;fonts" --add-data "icons;icons" main.py
-      - run: choco install innosetup -y --no-progress
-      - run: iscc installer\UrduTypewriter.iss
-      - uses: softprops/action-gh-release@v2
-        with: { files: release/*.exe }
+        with:
+          python-version: "3.12"
+          cache: 'pip' # Speeds up execution by reusing downloaded pip packages
+
+      # Installs only the dependencies needed to compile your bundle
+      - name: Install Build Dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      # Enforces one source of truth: ensures the Git Tag matches the version inside your code
+      # Example: If you push tag 'v2.3', it extracts '2.3' and compares it with your APP_VERSION in main.py
+      - name: Validate Tag against APP_VERSION
+        shell: bash
+        run: |
+          GIT_TAG="${GITHUB_REF#refs/tags/}"
+          TAG_VERSION="${GIT_TAG#v}" # strips out the leading 'v' (v2.3 -> 2.3)
+          
+          # Extracts the literal value inside quotes assigned to APP_VERSION in main.py
+          CODE_VERSION=$(python -c "
+          import re
+          with open('main.py', 'r', encoding='utf-8') as f:
+              content = f.read()
+          match = re.search(r'APP_VERSION\s*=\s*[\'\"]([^\'\"]+)[\'\"]', content)
+          if match:
+              print(match.group(1))
+          else:
+              print('NOT_FOUND')
+          ")
+          
+          echo "Pushed Git Tag Version: $TAG_VERSION"
+          echo "Extracted App Version:  $CODE_VERSION"
+          
+          if [ "$TAG_VERSION" != "$CODE_VERSION" ]; then
+            echo "::error::Version Mismatch! Git Tag ($GIT_TAG) does not match APP_VERSION ($CODE_VERSION) in main.py."
+            exit 1
+          fi
+          echo "Version check passed. Proceeding with application build."
+
+      # Standard execution bundle using correct Windows path separators (;)
+      - name: Compile Executable with PyInstaller
+        run: |
+          pyinstaller --noconfirm --windowed --name UrduTypewriter --add-data "fonts;fonts" --add-data "icons;icons" main.py
+
+      # Installs Inno Setup onto the Windows runner node environment using Chocolatey
+      - name: Install Inno Setup Compiler
+        run: choco install innosetup -y --no-progress
+
+      # Prevents Inno Setup from failing due to a missing destination folder structure
+      - name: Prepare Workspace Directories
+        run: mkdir -p release
+
+      # Compiles the final downloadable windows setup installer wizard
+      - name: Compile Setup Installer Wizard
+        run: iscc installer\UrduTypewriter.iss
+
+      # Automatically creates the Release page and attaches the compiled installer .exe
+      - name: Generate GitHub Release Page
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*.exe
+
