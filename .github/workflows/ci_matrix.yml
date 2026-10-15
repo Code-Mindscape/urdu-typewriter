@@ -11,52 +11,53 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # --- LINUX DOCKER EXECUTION ROUTE ---
+      # Automatically builds your Dockerfile recipe and executes the tests inside the container
+      - name: Run Tests inside Docker (Ubuntu Only)
+        if: matrix.os == 'ubuntu-24.04'
+        run: |
+          docker build -t urdu-typewriter-test .
+          docker run --env QT_QPA_PLATFORM=offscreen urdu-typewriter-test
+
+      # --- WINDOWS NATIVE EXECUTION ROUTE ---
+      # Windows stays native since standard Linux Docker containers cannot run on native Windows runners
       - uses: actions/setup-python@v5
+        if: matrix.os == 'windows-latest'
         with: 
           python-version: "3.12" 
           cache: pip
 
-      - name: Install Linux System Dependencies
-        if: matrix.os == 'ubuntu-24.04'
-        run: sudo apt-get update && sudo apt-get install -y libegl1 libxkbcommon0 libdbus-1-3 fonts-dejavu-core ghostscript
-
-      - name: Install Dependencies
+      - name: Install Dependencies (Windows Only)
+        if: matrix.os == 'windows-latest'
         run: |
           pip install -r requirements.txt
           pip install pyinstaller Pillow
 
-      # Safety Step: Ensures icons folder and basic image placeholders exist
-      - name: Ensure Asset Folders Exist
+      - name: Ensure Asset Folders Exist (Windows Only)
+        if: matrix.os == 'windows-latest'
         shell: bash
         run: |
           mkdir -p icons
           python -c "
           import os
           from PIL import Image
-          if not os.path.exists('icons/appicon.png'):
-              Image.new('RGBA', (256, 256), color=(0,0,0,0)).save('icons/appicon.png')
-          if not os.path.exists('icons/appicon.ico'):
-              Image.new('RGBA', (256, 256), color=(0,0,0,0)).save('icons/appicon.ico', format='ICO')
+          if not os.path.exists('icons/appicon.png'): Image.new('RGBA', (256, 256), color=(0,0,0,0)).save('icons/appicon.png')
+          if not os.path.exists('icons/appicon.ico'): Image.new('RGBA', (256, 256), color=(0,0,0,0)).save('icons/appicon.ico', format='ICO')
           "
 
-      # Runs your verification suite uniformly across both systems
-      # Explicitly skips test_svg_copy.py on Windows to bypass the WinError 32 file-lock crashes
-      - name: Run Tests
+      - name: Run Tests (Windows Only)
+        if: matrix.os == 'windows-latest'
         env: 
           QT_QPA_PLATFORM: offscreen
           PYTHONUTF8: "1"
         run: |
-          python -c "
-          import glob, subprocess, sys
-          for t in glob.glob('test_*.py'):
-              # Skip the flaky Windows-only PDF/SVG background-thread locking test
-              if sys.platform == 'win32' and 'svg_copy' in t.lower():
-                  print(f'Skipping file-locked test on Windows: {t}')
-                  continue
-                  
-              print(f'Running: {t}')
-              subprocess.run([sys.executable, t], check=True)
-          "
+          python -c "import glob, subprocess, sys; [subprocess.run([sys.executable, t], check=True) for t in glob.glob('test_*.py') if 'svg_copy' not in t.lower()]"
+
+      # --- COMPILATION STEPS ---
+      # Linux PyInstaller runs inside the host (Docker test confirmed core stability)
+      - name: Install PyInstaller on Linux Host for Build
+        if: matrix.os == 'ubuntu-24.04'
+        run: pip install pyinstaller Pillow && pip install -r requirements.txt
 
       # Linux Build Step
       - name: Build Application (Ubuntu)
@@ -76,3 +77,4 @@ jobs:
         with:
           name: URDUTYPEWRITTER-${{ matrix.os }}
           path: dist/URDUTYPEWRITTER/
+
