@@ -9,8 +9,9 @@ ENV PYTHONUNBUFFERED=1
 ENV QT_QPA_PLATFORM=offscreen
 ENV PYTHONUTF8=1
 
-# Install system GUI dependencies required by your text layout engine
+# Install system GUI and OpenGL dependencies required by your text layout engine
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
     libegl1 \
     libxkbcommon0 \
     libdbus-1-3 \
