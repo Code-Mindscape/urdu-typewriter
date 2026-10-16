@@ -32,7 +32,7 @@ import exporter
 import theme
 
 APP_TITLE = "Urdu Typewriter"
-APP_VERSION = "2.3"
+APP_VERSION = "2.3.1"
 BUNDLED_FONT_PATH = Path(__file__).parent / "fonts" / "NotoNastaliqUrdu-Regular.ttf"
 ICONS_DIR = Path(__file__).parent / "icons"
 
