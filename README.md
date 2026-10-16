@@ -1,3 +1,4 @@
+![CI Status](https://github.com)
 # Urdu Typewriter
 
 A desktop app for typing Urdu on an A4 page and exporting it as a PNG,

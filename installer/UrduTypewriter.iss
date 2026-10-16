@@ -3,21 +3,22 @@
 
 [Setup]
 AppName=Urdu Typewriter
-AppVersion=2.3
+AppVersion={#AppVersion}
 DefaultDirName={autopf}\UrduTypewriter
 DefaultGroupName=Urdu Typewriter
 UninstallDisplayIcon={app}\UrduTypewriter.exe
 Compression=lzma2
 SolidCompression=yes
-; This tells Inno Setup to output the final setup file into the "release" directory
 OutputDir=..\release
 OutputBaseFilename=UrduTypewriter_Setup
+; --- BRANDING CONFIGURATION ---
+; This links your repository icon asset directly to the final compiled setup wizard file
+SetupIconFile=..\icons\appicon.ico
 
 [Files]
-; This tells Inno Setup to grab the entire folder PyInstaller built
 Source: "..\dist\UrduTypewriter\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\Urdu Typewriter"; Filename: "{app}\UrduTypewriter.exe"
-Name: "{autodesktop}\Urdu Typewriter"; Filename: "{app}\UrduTypewriter.exe"
+Name: "{group}\Urdu Typewriter"; Filename: "{app}\UrduTypewriter.exe"; IconFilename: "{app}\icons\appicon.ico"
+Name: "{autodesktop}\Urdu Typewriter"; Filename: "{app}\UrduTypewriter.exe"; IconFilename: "{app}\icons\appicon.ico"
 
