@@ -1,4 +1,4 @@
-![CI Status](https://github.com)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/Code-Mindscape/urdu-typewriter/ci.yml?branch=main)](https://github.com/Code-Mindscape/urdu-typewriter/actions)
 # Urdu Typewriter
 
 A desktop app for typing Urdu on an A4 page and exporting it as a PNG,
