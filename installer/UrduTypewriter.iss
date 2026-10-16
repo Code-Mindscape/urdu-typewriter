@@ -12,7 +12,6 @@ SolidCompression=yes
 OutputDir=..\release
 OutputBaseFilename=UrduTypewriter_Setup
 ; --- BRANDING CONFIGURATION ---
-; This links your repository icon asset directly to the final compiled setup wizard file
 SetupIconFile=..\icons\appicon.ico
 
 [Files]
