@@ -2,10 +2,10 @@ name: Release
 on:
   push:
     tags:
-      - "v*" # Triggers exclusively when you push a tag like v2.3, v2.4, etc.
+      - "v*"
 
 permissions:
-  contents: write # Needed to create a GitHub Release and upload installer files
+  contents: write
 
 jobs:
   build:
@@ -17,23 +17,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: 'pip' # Speeds up execution by reusing downloaded pip packages
+          cache: 'pip'
 
-      # Installs only the dependencies needed to compile your bundle
       - name: Install Build Dependencies
         run: |
           pip install -r requirements.txt
           pip install pyinstaller
 
-      # Enforces one source of truth: ensures the Git Tag matches the version inside your code
-      # Example: If you push tag 'v2.3', it extracts '2.3' and compares it with your APP_VERSION in main.py
+      # Validates version strings and saves clean versions to environment paths
       - name: Validate Tag against APP_VERSION
+        id: version_check
         shell: bash
         run: |
           GIT_TAG="${GITHUB_REF#refs/tags/}"
-          TAG_VERSION="${GIT_TAG#v}" # strips out the leading 'v' (v2.3 -> 2.3)
+          TAG_VERSION="${GIT_TAG#v}"
           
-          # Extracts the literal value inside quotes assigned to APP_VERSION in main.py
           CODE_VERSION=$(python -c "
           import re
           with open('main.py', 'r', encoding='utf-8') as f:
@@ -52,26 +50,42 @@ jobs:
             echo "::error::Version Mismatch! Git Tag ($GIT_TAG) does not match APP_VERSION ($CODE_VERSION) in main.py."
             exit 1
           fi
-          echo "Version check passed. Proceeding with application build."
+          echo "CLEAN_VERSION=$TAG_VERSION" >> $GITHUB_ENV
 
-      # Standard execution bundle using correct Windows path separators (;)
       - name: Compile Executable with PyInstaller
         run: |
           pyinstaller --noconfirm --windowed --name UrduTypewriter --add-data "fonts;fonts" --add-data "icons;icons" main.py
 
-      # Installs Inno Setup onto the Windows runner node environment using Chocolatey
       - name: Install Inno Setup Compiler
         run: choco install innosetup -y --no-progress
 
-      # Prevents Inno Setup from failing due to a missing destination folder structure
-      - name: Prepare Workspace Directories
-        run: mkdir -p release
+      # Python automatically rewrites line 6 in the ISS script to completely bypass terminal macro bugs
+      - name: Dynamically Update Inno Setup Configuration Values
+        shell: bash
+        run: |
+          mkdir -p release
+          python -c "
+          import os
+          iss_path = 'installer/UrduTypewriter.iss'
+          if not os.path.exists(iss_path):
+              print('CRITICAL: Script missing!'); exit(1)
+              
+          with open(iss_path, 'r', encoding='utf-8') as f:
+              lines = f.readlines()
+              
+          for i, line in enumerate(lines):
+              if line.startswith('AppVersion='):
+                  lines[i] = f'AppVersion={os.environ[\"CLEAN_VERSION\"]}\n'
+                  print(f'Successfully injected version string directly: {lines[i].strip()}')
+                  
+          with open(iss_path, 'w', encoding='utf-8') as f:
+              f.writelines(lines)
+          "
 
-      # Compiles the final downloadable windows setup installer wizard
+      # Compiles cleanly without needing /D command line arguments anymore
       - name: Compile Setup Installer Wizard
         run: iscc installer\UrduTypewriter.iss
 
-      # Automatically creates the Release page and attaches the compiled installer .exe
       - name: Generate GitHub Release Page
         uses: softprops/action-gh-release@v2
         with:
