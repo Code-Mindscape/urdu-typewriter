@@ -12,15 +12,14 @@ jobs:
       - uses: actions/checkout@v4
 
       # --- LINUX DOCKER EXECUTION ROUTE ---
-      # Automatically builds your Dockerfile recipe and executes the tests inside the container
-      - name: Run Tests inside Docker (Ubuntu Only)
+      # Automatically builds your Dockerfile recipe and runs style checks + tests
+      - name: Run Code Style & Tests inside Docker (Ubuntu Only)
         if: matrix.os == 'ubuntu-24.04'
         run: |
           docker build -t urdu-typewriter-test .
           docker run --env QT_QPA_PLATFORM=offscreen urdu-typewriter-test
 
       # --- WINDOWS NATIVE EXECUTION ROUTE ---
-      # Windows stays native since standard Linux Docker containers cannot run on native Windows runners
       - uses: actions/setup-python@v5
         if: matrix.os == 'windows-latest'
         with: 
@@ -31,8 +30,9 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           pip install -r requirements.txt
-          pip install pyinstaller Pillow
+          pip install pyinstaller Pillow black
 
+      # Safety Step: Ensures icons folder and basic image placeholders exist
       - name: Ensure Asset Folders Exist (Windows Only)
         if: matrix.os == 'windows-latest'
         shell: bash
@@ -45,33 +45,31 @@ jobs:
           if not os.path.exists('icons/appicon.ico'): Image.new('RGBA', (256, 256), color=(0,0,0,0)).save('icons/appicon.ico', format='ICO')
           "
 
-      - name: Run Tests (Windows Only)
+      # Runs black format validation first before checking individual code behavior
+      - name: Run Code Style Check & Tests (Windows Only)
         if: matrix.os == 'windows-latest'
         env: 
           QT_QPA_PLATFORM: offscreen
           PYTHONUTF8: "1"
         run: |
+          black --check .
           python -c "import glob, subprocess, sys; [subprocess.run([sys.executable, t], check=True) for t in glob.glob('test_*.py') if 'svg_copy' not in t.lower()]"
 
       # --- COMPILATION STEPS ---
-      # Linux PyInstaller runs inside the host (Docker test confirmed core stability)
       - name: Install PyInstaller on Linux Host for Build
         if: matrix.os == 'ubuntu-24.04'
         run: pip install pyinstaller Pillow && pip install -r requirements.txt
 
-      # Linux Build Step
       - name: Build Application (Ubuntu)
         if: matrix.os == 'ubuntu-24.04'
         run: |
           pyinstaller --name URDUTYPEWRITTER --windowed --onedir --clean --icon=icons/appicon.png --add-data "icons/appicon.png:icons" main.py
 
-      # Windows Build Step
       - name: Build Application (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           pyinstaller --name URDUTYPEWRITTER --windowed --onedir --clean --icon=icons/appicon.ico --add-data "icons/appicon.ico;icons" main.py
 
-      # Packages and uploads the build folders safely
       - name: Upload Built Application
         uses: actions/upload-artifact@v4
         with:

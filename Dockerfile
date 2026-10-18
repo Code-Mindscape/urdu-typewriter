@@ -23,13 +23,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set the working directory inside the container
 WORKDIR /app
 
-# Copy dependency mappings and install them
+# Copy dependency mappings and install them along with the formatting tool
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt black
 
 # Copy the rest of your application code into the container workspace
 COPY . .
 
-# Run the test execution loop automatically when the container starts up
-CMD ["python", "-c", "import glob, subprocess, sys; [subprocess.run([sys.executable, t], check=True) for t in glob.glob('test_*.py') if 'svg_copy' not in t.lower()]"]
-
+# Run the formatting check FIRST, then execute your test loop if style passes
+CMD ["bash", "-c", "black --check . && python -c \"import glob, subprocess, sys;

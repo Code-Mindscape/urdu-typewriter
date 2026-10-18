@@ -37,12 +37,12 @@ STATE_TOOLTIPS = {
     "transcribing": "Finishing up the last few words…",
     "error": "Couldn't load the speech model — click to retry",
 }
-PULSE_INTERVAL_MS = 40   # animation tick rate for the ambient "listening" pulse
-PULSE_PERIOD_MS = 1600   # time for one full ambient pulse cycle
+PULSE_INTERVAL_MS = 40  # animation tick rate for the ambient "listening" pulse
+PULSE_PERIOD_MS = 1600  # time for one full ambient pulse cycle
 LEVEL_REFERENCE_RMS = 0.06  # an input level around here or above reads as the
-                             # level ring's "full" size — see set_audio_level
-LEVEL_SMOOTHING = 0.5       # 0..1, higher = the ring follows new readings faster
-                             # (vs. gliding toward them) — see set_audio_level
+# level ring's "full" size — see set_audio_level
+LEVEL_SMOOTHING = 0.5  # 0..1, higher = the ring follows new readings faster
+# (vs. gliding toward them) — see set_audio_level
 
 
 class VoiceOverlayButton(QWidget):
@@ -104,7 +104,9 @@ class VoiceOverlayButton(QWidget):
         self.update()
 
     def _advance_pulse(self):
-        self._pulse_phase = (self._pulse_phase + PULSE_INTERVAL_MS / PULSE_PERIOD_MS) % 1.0
+        self._pulse_phase = (
+            self._pulse_phase + PULSE_INTERVAL_MS / PULSE_PERIOD_MS
+        ) % 1.0
         self.update()
 
     def _button_rect(self):
@@ -183,11 +185,15 @@ class VoiceOverlayButton(QWidget):
         painter.setPen(QPen(ring_color, 2))
         painter.drawEllipse(rect)
 
-        icon = self._mic_recording_icon if self._state == "listening" else self._mic_icon
+        icon = (
+            self._mic_recording_icon if self._state == "listening" else self._mic_icon
+        )
         icon_size = 22
         icon_rect = QRect(
-            rect.center().x() - icon_size // 2, rect.center().y() - icon_size // 2,
-            icon_size, icon_size,
+            rect.center().x() - icon_size // 2,
+            rect.center().y() - icon_size // 2,
+            icon_size,
+            icon_size,
         )
         icon.paint(painter, icon_rect)
 
@@ -241,5 +247,7 @@ class VoiceOverlayButton(QWidget):
             y = max(0, min(self.y(), parent.height() - self.height()))
             self.move(x, y)
         else:
-            self.move(parent.width() - self.width() - margin,
-                      parent.height() - self.height() - margin)
+            self.move(
+                parent.width() - self.width() - margin,
+                parent.height() - self.height() - margin,
+            )

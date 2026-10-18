@@ -154,14 +154,17 @@ def extract_groups(document, granularity="character", char_range=None):
 
             if granularity == "run":
                 ranges = [
-                    (start, length) for start, length, _fmt
-                    in _fragment_ranges(block, line_start, line_end)
+                    (start, length)
+                    for start, length, _fmt in _fragment_ranges(
+                        block, line_start, line_end
+                    )
                 ]
             elif granularity == "word":
                 ranges = _word_ranges(block_text, line_start, line_end)
             else:
                 ranges = [
-                    (i, 1) for i in range(line_start, line_end)
+                    (i, 1)
+                    for i in range(line_start, line_end)
                     if not block_text[i].isspace()
                 ]
 
@@ -187,11 +190,13 @@ def extract_groups(document, granularity="character", char_range=None):
                         bbox = pb if bbox is None else bbox.united(pb)
 
                 if paths:
-                    groups.append({
-                        "text": block_text[start:start + length],
-                        "paths": paths,
-                        "color": color,
-                        "bbox": bbox,
-                    })
+                    groups.append(
+                        {
+                            "text": block_text[start : start + length],
+                            "paths": paths,
+                            "color": color,
+                            "bbox": bbox,
+                        }
+                    )
         block = block.next()
     return groups

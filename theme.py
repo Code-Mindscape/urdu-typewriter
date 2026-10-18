@@ -32,21 +32,21 @@ def _icon_url(name):
 UI_FONT_STACK = '"Segoe UI", "Ubuntu", "Noto Sans", "Helvetica Neue", Arial, sans-serif'
 
 
-BG = "#1B1C1F"            # app background ("the desk")
+BG = "#1B1C1F"  # app background ("the desk")
 CANVAS_BACKDROP = "#141517"  # area behind the page itself, one shade darker
-PANEL = "#242529"          # toolbars, dialogs, menus
-FIELD = "#2C2D32"          # inputs, buttons, list rows
+PANEL = "#242529"  # toolbars, dialogs, menus
+FIELD = "#2C2D32"  # inputs, buttons, list rows
 FIELD_HOVER = "#34353B"
 FIELD_PRESSED = "#232428"
 BORDER = "#38393F"
 BORDER_HOVER = "#46474D"
-TEXT = "#EDEBE6"           # warm off-white, not stark white
+TEXT = "#EDEBE6"  # warm off-white, not stark white
 TEXT_MUTED = "#96938C"
 TEXT_DISABLED = "#5B5954"
-ACCENT = "#C9A15C"         # brass/gold — the one accent color, used sparingly
+ACCENT = "#C9A15C"  # brass/gold — the one accent color, used sparingly
 ACCENT_HOVER = "#D9B579"
 ACCENT_PRESSED = "#B38A45"
-ACCENT_ON = "#1B1C1F"      # text/icon color when sitting on top of ACCENT
+ACCENT_ON = "#1B1C1F"  # text/icon color when sitting on top of ACCENT
 WARNING_BG = "#3A2E12"
 WARNING_TEXT = "#E8B84B"
 WARNING_BORDER = "#6B5320"
@@ -285,8 +285,14 @@ def apply_theme(app):
     pal.setColor(QPalette.ColorRole.Highlight, QColor(ACCENT))
     pal.setColor(QPalette.ColorRole.HighlightedText, QColor(ACCENT_ON))
     pal.setColor(QPalette.ColorRole.PlaceholderText, QColor(TEXT_MUTED))
-    pal.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor(TEXT_DISABLED))
-    pal.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText, QColor(TEXT_DISABLED))
+    pal.setColor(
+        QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor(TEXT_DISABLED)
+    )
+    pal.setColor(
+        QPalette.ColorGroup.Disabled,
+        QPalette.ColorRole.WindowText,
+        QColor(TEXT_DISABLED),
+    )
     app.setPalette(pal)
 
     app.setStyleSheet(QSS)

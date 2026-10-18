@@ -25,7 +25,15 @@ import base64
 import json
 
 from PyQt6.QtCore import Qt, QBuffer, QIODevice
-from PyQt6.QtGui import QTextCursor, QTextCharFormat, QTextBlockFormat, QFont, QColor, QBrush, QImage
+from PyQt6.QtGui import (
+    QTextCursor,
+    QTextCharFormat,
+    QTextBlockFormat,
+    QFont,
+    QColor,
+    QBrush,
+    QImage,
+)
 
 FORMAT_VERSION = 4
 EXTENSION = "utw"
@@ -36,6 +44,7 @@ class ProjectLoadError(Exception):
     """Raised for problems specific to reading a .utw file, with a message
     written for the person using the app rather than a raw exception
     string — main.py shows this text directly in the error dialog."""
+
 
 _ALIGN_TO_STR = {
     Qt.AlignmentFlag.AlignRight: "right",
@@ -126,29 +135,35 @@ def _serialize_blocks(document):
                 fmt = frag.charFormat()
                 font = fmt.font()
                 bg = fmt.background()
-                highlight = bg.color().name() if bg.style() != Qt.BrushStyle.NoBrush else None
+                highlight = (
+                    bg.color().name() if bg.style() != Qt.BrushStyle.NoBrush else None
+                )
                 if font.letterSpacingType() == QFont.SpacingType.PercentageSpacing:
                     letter_spacing = round(font.letterSpacing())
                 else:
                     letter_spacing = 100
-                runs.append({
-                    "text": frag.text(),
-                    "family": font.family(),
-                    "style": font.styleName(),
-                    "size": font.pointSize() if font.pointSize() > 0 else 12,
-                    "color": fmt.foreground().color().name(),
-                    "underline": fmt.fontUnderline(),
-                    "strikeout": fmt.fontStrikeOut(),
-                    "highlight": highlight,
-                    "letter_spacing": letter_spacing,
-                    "word_spacing": round(font.wordSpacing(), 2),
-                })
+                runs.append(
+                    {
+                        "text": frag.text(),
+                        "family": font.family(),
+                        "style": font.styleName(),
+                        "size": font.pointSize() if font.pointSize() > 0 else 12,
+                        "color": fmt.foreground().color().name(),
+                        "underline": fmt.fontUnderline(),
+                        "strikeout": fmt.fontStrikeOut(),
+                        "highlight": highlight,
+                        "letter_spacing": letter_spacing,
+                        "word_spacing": round(font.wordSpacing(), 2),
+                    }
+                )
             it += 1
-        blocks.append({
-            "alignment": align,
-            "line_spacing": round(line_height) if line_height > 0 else 100,
-            "runs": runs,
-        })
+        blocks.append(
+            {
+                "alignment": align,
+                "line_spacing": round(line_height) if line_height > 0 else 100,
+                "runs": runs,
+            }
+        )
         block = block.next()
     return blocks
 
@@ -162,10 +177,14 @@ def _deserialize_blocks(document, blocks_data):
         if bi > 0:
             cursor.insertBlock()
         bf = cursor.blockFormat()
-        bf.setAlignment(_STR_TO_ALIGN.get(block_data.get("alignment"), Qt.AlignmentFlag.AlignRight))
+        bf.setAlignment(
+            _STR_TO_ALIGN.get(block_data.get("alignment"), Qt.AlignmentFlag.AlignRight)
+        )
         line_spacing = _safe_int(block_data.get("line_spacing"), 100)
-        bf.setLineHeight(float(line_spacing if line_spacing > 0 else 100),
-                          QTextBlockFormat.LineHeightTypes.ProportionalHeight.value)
+        bf.setLineHeight(
+            float(line_spacing if line_spacing > 0 else 100),
+            QTextBlockFormat.LineHeightTypes.ProportionalHeight.value,
+        )
         cursor.setBlockFormat(bf)
         for run in block_data.get("runs", []):
             if not isinstance(run, dict):
@@ -177,8 +196,10 @@ def _deserialize_blocks(document, blocks_data):
                 font.setStyleName(style)
             font.setPointSize(max(1, _safe_int(run.get("size"), 12)))
             letter_spacing = _safe_int(run.get("letter_spacing"), 100)
-            font.setLetterSpacing(QFont.SpacingType.PercentageSpacing,
-                                   letter_spacing if letter_spacing > 0 else 100)
+            font.setLetterSpacing(
+                QFont.SpacingType.PercentageSpacing,
+                letter_spacing if letter_spacing > 0 else 100,
+            )
             font.setWordSpacing(_safe_float(run.get("word_spacing"), 0.0))
             fmt.setFont(font)
             fmt.setForeground(_safe_color(run.get("color"), "#000000"))
@@ -241,7 +262,9 @@ def load_project(path):
     except FileNotFoundError as e:
         raise ProjectLoadError(f"That file no longer exists:\n\n{path}") from e
     except PermissionError as e:
-        raise ProjectLoadError(f"Couldn't open this file — permission denied.\n\n{path}") from e
+        raise ProjectLoadError(
+            f"Couldn't open this file — permission denied.\n\n{path}"
+        ) from e
     except UnicodeDecodeError as e:
         raise ProjectLoadError(
             f"This doesn't look like a Urdu Typewriter project file "
@@ -283,7 +306,9 @@ def load_project(path):
 
     return {
         "page": page,
-        "pending": data.get("pending", {}) if isinstance(data.get("pending"), dict) else {},
+        "pending": (
+            data.get("pending", {}) if isinstance(data.get("pending"), dict) else {}
+        ),
         "blocks": blocks,
     }
 
@@ -304,14 +329,20 @@ def apply_loaded_project(loaded, canvas):
         background_image_mode = "fit"
     border_width = max(0, _safe_int(page.get("border_width"), 0))
     border_color = _safe_color(page.get("border_color"), "#000000")
-    border_style = _STR_TO_BORDER_STYLE.get(page.get("border_style"), Qt.PenStyle.SolidLine)
+    border_style = _STR_TO_BORDER_STYLE.get(
+        page.get("border_style"), Qt.PenStyle.SolidLine
+    )
     vertical_align = _safe_str(page.get("vertical_align"), "top")
     if vertical_align not in ("top", "middle", "bottom"):
         vertical_align = "top"
 
     pending = loaded["pending"]
-    pending_family = pending.get("family") if isinstance(pending.get("family"), str) else None
-    pending_style = pending.get("style") if isinstance(pending.get("style"), str) else None
+    pending_family = (
+        pending.get("family") if isinstance(pending.get("family"), str) else None
+    )
+    pending_style = (
+        pending.get("style") if isinstance(pending.get("style"), str) else None
+    )
     pending_size = _safe_int(pending.get("size"), None)
     pending_color = _safe_color(pending.get("color"), None)
     pending_word_spacing = _safe_float(pending.get("word_spacing"), None)

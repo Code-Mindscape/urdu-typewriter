@@ -23,6 +23,7 @@ written in different fonts (font_gap.py):
 
     python test_font_gap.py
 """
+
 import contextlib
 import faulthandler
 import io
@@ -41,7 +42,13 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from PyQt6.QtCore import QEvent, QSettings, QStandardPaths, Qt
 from PyQt6.QtGui import (
-    QColor, QFont, QKeyEvent, QTextCharFormat, QTextCursor, QTextDocument, QTextLayout,
+    QColor,
+    QFont,
+    QKeyEvent,
+    QTextCharFormat,
+    QTextCursor,
+    QTextDocument,
+    QTextLayout,
 )
 from PyQt6.QtWidgets import QApplication, QMenu
 
@@ -75,7 +82,10 @@ failures = []
 
 
 def check(label, ok, detail=""):
-    print(f"[{'OK' if ok else 'FAIL'}] {label}" + (f" — {detail}" if detail and not ok else ""))
+    print(
+        f"[{'OK' if ok else 'FAIL'}] {label}"
+        + (f" — {detail}" if detail and not ok else "")
+    )
     if not ok:
         failures.append(label)
 
@@ -92,7 +102,9 @@ def type_text(widget, text):
     for ch in text:
         key = Qt.Key.Key_Space if ch == " " else Qt.Key.Key_unknown
         for kind in (QEvent.Type.KeyPress, QEvent.Type.KeyRelease):
-            QApplication.sendEvent(widget, QKeyEvent(kind, key, Qt.KeyboardModifier.NoModifier, ch))
+            QApplication.sendEvent(
+                widget, QKeyEvent(kind, key, Qt.KeyboardModifier.NoModifier, ch)
+            )
 
 
 def fmt(family, pt=36, style=None):
@@ -108,6 +120,7 @@ def fmt(family, pt=36, style=None):
 
 def rtl_doc():
     from PyQt6.QtGui import QTextOption
+
     doc = QTextDocument()
     opt = QTextOption()
     opt.setTextDirection(Qt.LayoutDirection.RightToLeft)
@@ -136,8 +149,10 @@ def gaps(doc, em=0.07):
 
 def positions(doc):
     """{stripped run text: (left, right)} of every outlined run."""
-    return {g["text"].strip(): (g["bbox"].left(), g["bbox"].right())
-            for g in text_outlines.extract_groups(doc, "run")}
+    return {
+        g["text"].strip(): (g["bbox"].left(), g["bbox"].right())
+        for g in text_outlines.extract_groups(doc, "run")
+    }
 
 
 def sep(pos):
@@ -163,9 +178,18 @@ def block_formats(doc):
         while not it.atEnd():
             fr = it.fragment()
             f = fr.charFormat()
-            out.append((fr.position(), fr.length(), f.font().family(), f.font().pointSizeF(),
-                        int(f.fontLetterSpacingType().value), f.fontLetterSpacing(),
-                        f.fontWordSpacing(), f.foreground().color().name()))
+            out.append(
+                (
+                    fr.position(),
+                    fr.length(),
+                    f.font().family(),
+                    f.font().pointSizeF(),
+                    int(f.fontLetterSpacingType().value),
+                    f.fontLetterSpacing(),
+                    f.fontWordSpacing(),
+                    f.foreground().color().name(),
+                )
+            )
             it += 1
         b = b.next()
     return out
@@ -186,47 +210,81 @@ def n_gap_ranges(doc):
     n = 0
     b = doc.begin()
     while b.isValid():
-        n += sum(1 for r in b.layout().formats() if r.format.hasProperty(font_gap._MARK))
+        n += sum(
+            1 for r in b.layout().formats() if r.format.hasProperty(font_gap._MARK)
+        )
         b = b.next()
     return n
 
 
 # ============================================================== planning ===
-check("level table: off=0 and the three sizes ascend",
-      font_gap.LEVELS["off"] == 0 < font_gap.LEVELS["subtle"] < font_gap.LEVELS["normal"] < font_gap.LEVELS["wide"])
+check(
+    "level table: off=0 and the three sizes ascend",
+    font_gap.LEVELS["off"]
+    == 0
+    < font_gap.LEVELS["subtle"]
+    < font_gap.LEVELS["normal"]
+    < font_gap.LEVELS["wide"],
+)
 check("default level is 'normal'", font_gap.DEFAULT_LEVEL == "normal")
 
 d = line((W1 + " ", NAST), (W2, SANS))
 p = gaps(d)[0]
 check("two words in different fonts: exactly one gap", len(p) == 1, str(p))
-check("...on the space between them (index 4, after the 4-letter word)", p and p[0][0] == 4, str(p))
-check("...sized em x the font size in px (0.07 x 48)", p and abs(p[0][1] - 0.07 * PX36) < 1e-6, str(p))
+check(
+    "...on the space between them (index 4, after the 4-letter word)",
+    p and p[0][0] == 4,
+    str(p),
+)
+check(
+    "...sized em x the font size in px (0.07 x 48)",
+    p and abs(p[0][1] - 0.07 * PX36) < 1e-6,
+    str(p),
+)
 
 d = line((W1 + " " + W2, NAST))
 check("one font: no gap", gaps(d)[0] == [])
 
 d = line((W1 + " ", NAST), (W2 + " ", SANS), (W3, NAST))
-check("fonts A, B, A: a gap at each of the two joins (spaces at 4 and 8)", [g[0] for g in gaps(d)[0]] == [4, 8], str(gaps(d)))
+check(
+    "fonts A, B, A: a gap at each of the two joins (spaces at 4 and 8)",
+    [g[0] for g in gaps(d)[0]] == [4, 8],
+    str(gaps(d)),
+)
 
 d = line((W1 + "   ", NAST), (W2, SANS))
-check("several spaces between: the gap goes on the LAST one (index 6)", [g[0] for g in gaps(d)[0]] == [6], str(gaps(d)))
+check(
+    "several spaces between: the gap goes on the LAST one (index 6)",
+    [g[0] for g in gaps(d)[0]] == [6],
+    str(gaps(d)),
+)
 
 d = line((W1 + "\t", NAST), (W2, SANS))
 check("only a tab between: nothing to carry the gap, so none", gaps(d)[0] == [])
 
 d = line((W1[:2], NAST), (W1[2:] + " " + W2, SANS))
-check("a font change in the MIDDLE of a word: no gap (it must never split a word)", gaps(d)[0] == [],
-      str(gaps(d)))
+check(
+    "a font change in the MIDDLE of a word: no gap (it must never split a word)",
+    gaps(d)[0] == [],
+    str(gaps(d)),
+)
 
 d = line((W1 + " ", NAST, 36), (W2, NAST, 20))
 check("same family, different size: no gap", gaps(d)[0] == [])
 
 d = line((W1 + " ", NAST, 36), (W2, SANS, 20))
-check("different sizes + families: the larger font sets the gap (48 px, not 26.7)",
-      abs(gaps(d)[0][0][1] - 0.07 * PX36) < 1e-6, str(gaps(d)))
+check(
+    "different sizes + families: the larger font sets the gap (48 px, not 26.7)",
+    abs(gaps(d)[0][0][1] - 0.07 * PX36) < 1e-6,
+    str(gaps(d)),
+)
 
 d = line((" " + W1 + " ", NAST), (W2 + " ", SANS))
-check("leading/trailing spaces don't make extra gaps", [g[0] for g in gaps(d)[0]] == [5], str(gaps(d)))
+check(
+    "leading/trailing spaces don't make extra gaps",
+    [g[0] for g in gaps(d)[0]] == [5],
+    str(gaps(d)),
+)
 
 d = line((W1 + " ", NAST), (W2, SANS))
 c = QTextCursor(d)
@@ -235,11 +293,20 @@ c.insertBlock()
 c.insertText(W2 + " ", fmt(SANS))
 c.insertText(W3, fmt(NAST))
 g = gaps(d)
-check("each paragraph is planned on its own", len(g) == 2 and len(g[0]) == 1 and len(g[1]) == 1, str(g))
+check(
+    "each paragraph is planned on its own",
+    len(g) == 2 and len(g[0]) == 1 and len(g[1]) == 1,
+    str(g),
+)
 check("no gaps at all when the level is off", all(not x for x in gaps(d, 0.0)))
 
 d = line(("a", NAST), (" ", NAST), ("b", SANS))
-check("single-letter words still get their gap", [x[0] for x in gaps(d)[0]] == [1], str(gaps(d)))
+check(
+    "single-letter words still get their gap",
+    [x[0] for x in gaps(d)[0]] == [1],
+    str(gaps(d)),
+)
+
 
 # ================================================================ effect ===
 def two_font_canvas(level="normal"):
@@ -260,40 +327,69 @@ base = positions(doc)
 check("two runs found on the page", set(base) == {W1, W2}, str(list(base)))
 check("level off: no gap ranges anywhere", n_gap_ranges(doc) == 0)
 
-rev0, undo0, mod0, fmts0 = doc.revision(), doc.availableUndoSteps(), doc.isModified(), block_formats(doc)
+rev0, undo0, mod0, fmts0 = (
+    doc.revision(),
+    doc.availableUndoSteps(),
+    doc.isModified(),
+    block_formats(doc),
+)
 for level, em in (("subtle", 0.04), ("normal", 0.07), ("wide", 0.12), ("off", 0.0)):
     mgr.set_level(level)
     app.processEvents()
     now = positions(doc)
     grew = sep(now) - sep(base)
     want = em * PX36
-    check(f"{level}: the two words end up em x 48 px further apart ({want:.2f})", abs(grew - want) < 0.1, f"{grew:.3f}")
+    check(
+        f"{level}: the two words end up em x 48 px further apart ({want:.2f})",
+        abs(grew - want) < 0.1,
+        f"{grew:.3f}",
+    )
     # (0.05 px tolerance: Qt lays text out in 1/64-pixel steps, so a word's measured
     # width can wobble by one step when the line around it shifts.)
-    check(f"{level}: neither word changes shape (each keeps its own width)",
-          all(abs(width_of(now, w) - width_of(base, w)) < 0.05 for w in (W1, W2)))
-    check(f"{level}: exactly {0 if em == 0 else 1} gap range(s) in the layout", n_gap_ranges(doc) == (0 if em == 0 else 1))
-check("back at Off, every position is exactly as the baseline",
-      all(abs(positions(doc)[k][i] - base[k][i]) < 0.01 for k in base for i in (0, 1)))
+    check(
+        f"{level}: neither word changes shape (each keeps its own width)",
+        all(abs(width_of(now, w) - width_of(base, w)) < 0.05 for w in (W1, W2)),
+    )
+    check(
+        f"{level}: exactly {0 if em == 0 else 1} gap range(s) in the layout",
+        n_gap_ranges(doc) == (0 if em == 0 else 1),
+    )
+check(
+    "back at Off, every position is exactly as the baseline",
+    all(abs(positions(doc)[k][i] - base[k][i]) < 0.01 for k in base for i in (0, 1)),
+)
 
 # ================================================== the document is clean ===
 mgr.set_level("normal")
 app.processEvents()
-check("document revision unchanged by turning the feature on/off", doc.revision() == rev0, f"{doc.revision()} vs {rev0}")
+check(
+    "document revision unchanged by turning the feature on/off",
+    doc.revision() == rev0,
+    f"{doc.revision()} vs {rev0}",
+)
 check("undo history unchanged (no extra steps)", doc.availableUndoSteps() == undo0)
 check("modified flag unchanged", doc.isModified() == mod0)
-check("every character format identical (letter/word spacing included)", block_formats(doc) == fmts0)
+check(
+    "every character format identical (letter/word spacing included)",
+    block_formats(doc) == fmts0,
+)
 check("plain text identical", doc.toPlainText() == W1 + " " + W2)
 
 # ===================================================== typing: immediate ===
 c, mgr = two_font_canvas("normal")
 type_text(c, W1 + " ")
-check("typing the first word + space: no gap yet (one font so far)", n_gap_ranges(c.document()) == 0)
+check(
+    "typing the first word + space: no gap yet (one font so far)",
+    n_gap_ranges(c.document()) == 0,
+)
 c.set_pending_family(SANS)
 type_text(c, W2[0])
 # deliberately NO processEvents: the gap must already be in the layout the
 # moment the character exists, before Qt lays the line out
-check("the instant the second word's first letter is typed, the gap exists", n_gap_ranges(c.document()) == 1)
+check(
+    "the instant the second word's first letter is typed, the gap exists",
+    n_gap_ranges(c.document()) == 1,
+)
 type_text(c, W2[1:])
 check("finishing the word keeps exactly one gap", n_gap_ranges(c.document()) == 1)
 check("...and the layout is in sync with the text", in_sync(c.document(), 0.07))
@@ -303,9 +399,13 @@ cur = c.textCursor()
 cur.setPosition(4)
 cur.setPosition(5, QTextCursor.MoveMode.KeepAnchor)
 cur.removeSelectedText()
-check("delete the space between them: the gap goes away", n_gap_ranges(c.document()) == 0)
+check(
+    "delete the space between them: the gap goes away", n_gap_ranges(c.document()) == 0
+)
 c.document().undo()
-check("undo that deletion: the gap comes back by itself", n_gap_ranges(c.document()) == 1)
+check(
+    "undo that deletion: the gap comes back by itself", n_gap_ranges(c.document()) == 1
+)
 c.document().redo()
 check("redo it: gone again", n_gap_ranges(c.document()) == 0)
 c.document().undo()
@@ -321,18 +421,28 @@ check("make everything one font: no gap", n_gap_ranges(c.document()) == 0)
 # pending format -- so it can take more than one undo to get back; what must
 # hold is that the gap is back exactly when the formats are)
 n = 0
-while block_formats(c.document()) != before_change and c.document().isUndoAvailable() and n < 6:
+while (
+    block_formats(c.document()) != before_change
+    and c.document().isUndoAvailable()
+    and n < 6
+):
     c.document().undo()
     n += 1
-check("undo the font change until the fonts are back: the gap is back with them",
-      block_formats(c.document()) == before_change and n_gap_ranges(c.document()) == 1, f"{n} undos")
+check(
+    "undo the font change until the fonts are back: the gap is back with them",
+    block_formats(c.document()) == before_change and n_gap_ranges(c.document()) == 1,
+    f"{n} undos",
+)
 
 # Roman-Urdu / dictation style insertion through the app's own paths
 c2, m2 = two_font_canvas("normal")
 c2.insert_dictated_text(W1 + " ")
 c2.set_pending_family(SANS)
 c2.insert_dictated_text(W2)
-check("text inserted by voice dictation gets its gap too", n_gap_ranges(c2.document()) == 1)
+check(
+    "text inserted by voice dictation gets its gap too",
+    n_gap_ranges(c2.document()) == 1,
+)
 
 # ============================================================ undo clean ===
 c, mgr = two_font_canvas("normal")
@@ -346,8 +456,11 @@ while doc.isUndoAvailable() and n < 50:
     doc.undo()
     n += 1
 check("undoing everything empties the page", doc.toPlainText() == "")
-check("...with no extra 'gap-only' undo steps in between (steps == undo calls)", n == steps_after_typing,
-      f"{n} undos vs {steps_after_typing} steps")
+check(
+    "...with no extra 'gap-only' undo steps in between (steps == undo calls)",
+    n == steps_after_typing,
+    f"{n} undos vs {steps_after_typing} steps",
+)
 check("...and no gap left behind", n_gap_ranges(doc) == 0)
 n = 0
 while doc.isRedoAvailable() and n < 50:
@@ -355,6 +468,7 @@ while doc.isRedoAvailable() and n < 50:
     n += 1
 check("redo everything restores the text", doc.toPlainText() == W1 + " " + W2)
 check("...and the gap with it", n_gap_ranges(doc) == 1)
+
 
 # =========================================================== saved files ===
 def project_json(level):
@@ -372,7 +486,10 @@ p_on, c_on = project_json("wide")
 a = json.load(open(p_off, encoding="utf-8"))
 b = json.load(open(p_on, encoding="utf-8"))
 check("saved project is byte-for-byte what it would be with the feature Off", a == b)
-check("no gap/letter-spacing trace anywhere in the saved text", "AbsoluteSpacing" not in open(p_on, encoding="utf-8").read())
+check(
+    "no gap/letter-spacing trace anywhere in the saved text",
+    "AbsoluteSpacing" not in open(p_on, encoding="utf-8").read(),
+)
 
 c3, m3 = two_font_canvas("normal")
 project_io.apply_loaded_project(project_io.load_project(p_on), c3)
@@ -393,25 +510,44 @@ steps = 0
 buf = io.StringIO()
 with contextlib.redirect_stderr(buf):
     for step in range(450):
-        op = rng.choice(["insert", "insert", "insert", "delete", "fmt", "undo", "redo", "block", "spaces"])
+        op = rng.choice(
+            [
+                "insert",
+                "insert",
+                "insert",
+                "delete",
+                "fmt",
+                "undo",
+                "redo",
+                "block",
+                "spaces",
+            ]
+        )
         cur = QTextCursor(doc)
         total = max(doc.characterCount() - 1, 0)
         pos = rng.randint(0, total)
         if op == "insert":
             cur.setPosition(pos)
-            cur.insertText(rng.choice(WORDS) + rng.choice(["", " ", " ", "  "]), fmt(rng.choice(FAMS), rng.choice([24, 36, 36])))
+            cur.insertText(
+                rng.choice(WORDS) + rng.choice(["", " ", " ", "  "]),
+                fmt(rng.choice(FAMS), rng.choice([24, 36, 36])),
+            )
         elif op == "spaces":
             cur.setPosition(pos)
             cur.insertText(" " * rng.randint(1, 3), fmt(rng.choice(FAMS)))
         elif op == "delete" and total > 0:
             a = rng.randint(0, total)
             cur.setPosition(a)
-            cur.setPosition(min(total, a + rng.randint(1, 8)), QTextCursor.MoveMode.KeepAnchor)
+            cur.setPosition(
+                min(total, a + rng.randint(1, 8)), QTextCursor.MoveMode.KeepAnchor
+            )
             cur.removeSelectedText()
         elif op == "fmt" and total > 0:
             a = rng.randint(0, total)
             cur.setPosition(a)
-            cur.setPosition(min(total, a + rng.randint(1, 12)), QTextCursor.MoveMode.KeepAnchor)
+            cur.setPosition(
+                min(total, a + rng.randint(1, 12)), QTextCursor.MoveMode.KeepAnchor
+            )
             f = QTextCharFormat()
             font = QFont(rng.choice(FAMS))
             f.setFont(font)
@@ -431,9 +567,16 @@ with contextlib.redirect_stderr(buf):
             errors.append(f"out of sync after step {step} ({op})")
             break
         steps += 1
-check("450-step random session (insert/delete/font change/undo/redo/new paragraph): manager never broke",
-      not mgr._broken and not any("broke" in e for e in errors), "; ".join(errors))
-check("...and after EVERY step the layout matched the text (never stale, never missing)", sync_ok, "; ".join(errors))
+check(
+    "450-step random session (insert/delete/font change/undo/redo/new paragraph): manager never broke",
+    not mgr._broken and not any("broke" in e for e in errors),
+    "; ".join(errors),
+)
+check(
+    "...and after EVERY step the layout matched the text (never stale, never missing)",
+    sync_ok,
+    "; ".join(errors),
+)
 check("...ran all the steps", steps == 450, str(steps))
 total_seen = 0
 rng2 = random.Random(7)
@@ -443,7 +586,11 @@ for _ in range(60):
     cur.movePosition(QTextCursor.MoveOperation.End)
     cur.insertText(rng2.choice(WORDS) + " ", fmt(rng2.choice(FAMS)))
     total_seen = max(total_seen, n_gap_ranges(c_v.document()))
-check("(sanity) a plain sequence of mixed-font words does accumulate many gaps", total_seen > 10, str(total_seen))
+check(
+    "(sanity) a plain sequence of mixed-font words does accumulate many gaps",
+    total_seen > 10,
+    str(total_seen),
+)
 
 # ================================================== WYSIWYG / exports ===
 c, mgr = two_font_canvas("normal")
@@ -455,33 +602,47 @@ doc = c.document()
 doc.setTextWidth(794)
 live = positions(doc)
 clone_on = positions(exporter._layout_copy(doc, 794))
-check("the export/print clone shows the same gap the screen does",
-      all(abs(live[k][i] - clone_on[k][i]) < 0.05 for k in live for i in (0, 1)), f"{live} vs {clone_on}")
+check(
+    "the export/print clone shows the same gap the screen does",
+    all(abs(live[k][i] - clone_on[k][i]) < 0.05 for k in live for i in (0, 1)),
+    f"{live} vs {clone_on}",
+)
 raw_clone = doc.clone()
-check("(a plain clone has no layout formats -- which is why _layout_copy re-applies them)",
-      n_gap_ranges(raw_clone) == 0)
+check(
+    "(a plain clone has no layout formats -- which is why _layout_copy re-applies them)",
+    n_gap_ranges(raw_clone) == 0,
+)
 
 mgr.set_level("off")
 clone_off = positions(exporter._layout_copy(doc, 794))
-check("with the feature Off, exports have no gap either (words 0.07 x 48 px closer than with it on)",
-      abs((sep(clone_on) - sep(clone_off)) - 0.07 * PX36) < 0.1, f"{sep(clone_on)} vs {sep(clone_off)}")
+check(
+    "with the feature Off, exports have no gap either (words 0.07 x 48 px closer than with it on)",
+    abs((sep(clone_on) - sep(clone_off)) - 0.07 * PX36) < 0.1,
+    f"{sep(clone_on)} vs {sep(clone_off)}",
+)
 mgr.set_level("normal")
 
 from PyQt6.QtGui import QImage  # noqa: E402
 
 
 def _without_timestamp(eps_bytes):
-    return b"\n".join(l for l in eps_bytes.split(b"\n") if not l.startswith(b"%%CreationDate"))
+    return b"\n".join(
+        l for l in eps_bytes.split(b"\n") if not l.startswith(b"%%CreationDate")
+    )
 
 
 def outputs():
     d = doc.clone()
-    img = exporter._render_raster_image(d, 794, 1123, 794, 1123, QColor("white"), None, "fit", 0, None)
+    img = exporter._render_raster_image(
+        d, 794, 1123, 794, 1123, QColor("white"), None, "fit", 0, None
+    )
     return {
         "SVG": exporter.render_svg_bytes(d, 794, 1123, QColor("white")),
         "PDF (curves)": exporter.render_pdf_curves_bytes(d, 794),
         "SVG (curves)": exporter.render_svg_curves_bytes(d, 794),
-        "EPS": _without_timestamp(exporter.render_eps_bytes(d, 794, 1123, QColor("white"))),
+        "EPS": _without_timestamp(
+            exporter.render_eps_bytes(d, 794, 1123, QColor("white"))
+        ),
         "PNG pixels": bytes(img.constBits().asarray(img.sizeInBytes())),
     }
 
@@ -492,8 +653,10 @@ mgr.set_level("off")
 without = outputs()
 mgr.set_level("normal")
 for name in with_gap:
-    check(f"{name} output differs with the gap vs without it (the exporter really applies it)",
-          with_gap[name] != without[name])
+    check(
+        f"{name} output differs with the gap vs without it (the exporter really applies it)",
+        with_gap[name] != without[name],
+    )
 
 # =================================================== safe / containment ===
 c, mgr = two_font_canvas("normal")
@@ -520,15 +683,36 @@ except Exception as exc:  # pragma: no cover
     raised = exc
 finally:
     font_gap.plan_block = real_plan
-check("an internal error never propagates out of the signal handler", raised is None, str(raised))
-check("...it reports once (not once per keystroke)", len(failed_msgs) == 1, str(failed_msgs))
+check(
+    "an internal error never propagates out of the signal handler",
+    raised is None,
+    str(raised),
+)
+check(
+    "...it reports once (not once per keystroke)",
+    len(failed_msgs) == 1,
+    str(failed_msgs),
+)
 check("...the traceback went to stderr", "simulated failure" in buf.getvalue())
-check("...the feature switched itself off for exports too", font_gap.active_level() == "off")
-check("...and the page was restored to look exactly as without the feature", n_gap_ranges(c.document()) == 0)
-check("...typing carries on normally afterwards", (type_text(c, "z") or True) and c.toPlainText().endswith("xyz"))
+check(
+    "...the feature switched itself off for exports too",
+    font_gap.active_level() == "off",
+)
+check(
+    "...and the page was restored to look exactly as without the feature",
+    n_gap_ranges(c.document()) == 0,
+)
+check(
+    "...typing carries on normally afterwards",
+    (type_text(c, "z") or True) and c.toPlainText().endswith("xyz"),
+)
 mgr.set_level("normal")
-check("choosing a level again re-enables it", not mgr._broken and font_gap.active_level() == "normal"
-      and n_gap_ranges(c.document()) == 1)
+check(
+    "choosing a level again re-enables it",
+    not mgr._broken
+    and font_gap.active_level() == "normal"
+    and n_gap_ranges(c.document()) == 1,
+)
 
 # layout formats somebody else owns are left alone
 c, mgr = two_font_canvas("normal")
@@ -544,7 +728,10 @@ foreign.format = ff
 blk.layout().setFormats(list(blk.layout().formats()) + [foreign])
 type_text(c, "ab")  # an edit re-applies ours
 kept = [r for r in blk.layout().formats() if not r.format.hasProperty(font_gap._MARK)]
-check("another component's layout format survives our updates", len(kept) == 1 and kept[0].format.fontUnderline())
+check(
+    "another component's layout format survives our updates",
+    len(kept) == 1 and kept[0].format.fontUnderline(),
+)
 check("...and ours is still there", n_gap_ranges(c.document()) == 1)
 
 # speed: a big page, every word a different font from its neighbour
@@ -561,40 +748,83 @@ t0 = time.time()
 blk = big.findBlockByNumber(10)
 font_gap.apply_block(blk, 0.07)
 t_one = time.time() - t0
-check(f"whole 2,500-word page planned+applied in {t_all*1000:.0f} ms (< 1.5 s)", t_all < 1.5, f"{t_all:.2f}s")
-check(f"...re-checking the block being edited takes {t_one*1000:.1f} ms (< 50 ms, i.e. typing stays instant)", t_one < 0.05, f"{t_one:.3f}s")
-check("...and the big page really got its gaps", changed >= 50 and n_gap_ranges(big) > 2000, f"{changed} blocks, {n_gap_ranges(big)} gaps")
+check(
+    f"whole 2,500-word page planned+applied in {t_all*1000:.0f} ms (< 1.5 s)",
+    t_all < 1.5,
+    f"{t_all:.2f}s",
+)
+check(
+    f"...re-checking the block being edited takes {t_one*1000:.1f} ms (< 50 ms, i.e. typing stays instant)",
+    t_one < 0.05,
+    f"{t_one:.3f}s",
+)
+check(
+    "...and the big page really got its gaps",
+    changed >= 50 and n_gap_ranges(big) > 2000,
+    f"{changed} blocks, {n_gap_ranges(big)} gaps",
+)
 
 # =============================================================== the UI ===
 win = main.MainWindow()
 win.show()
 app.processEvents()
 tools = next(m for m in win.menuBar().findChildren(QMenu) if m.title() == "&Tools")
-gap_menu = next((a.menu() for a in tools.actions() if a.menu() and "Gap Between Fonts" in a.text()), None)
+gap_menu = next(
+    (a.menu() for a in tools.actions() if a.menu() and "Gap Between Fonts" in a.text()),
+    None,
+)
 check("Tools menu has 'Gap Between Fonts (Experimental)'", gap_menu is not None)
 acts = {a.text(): a for a in gap_menu.actions()} if gap_menu else {}
-check("...with Off / Subtle / Normal / Wide", list(acts) == ["Off", "Subtle", "Normal", "Wide"], str(list(acts)))
-check("...all checkable, and exactly one checked", all(a.isCheckable() for a in acts.values())
-      and sum(a.isChecked() for a in acts.values()) == 1)
-check("default is Normal", acts["Normal"].isChecked() and win.font_gap.level() == "normal")
+check(
+    "...with Off / Subtle / Normal / Wide",
+    list(acts) == ["Off", "Subtle", "Normal", "Wide"],
+    str(list(acts)),
+)
+check(
+    "...all checkable, and exactly one checked",
+    all(a.isCheckable() for a in acts.values())
+    and sum(a.isChecked() for a in acts.values()) == 1,
+)
+check(
+    "default is Normal", acts["Normal"].isChecked() and win.font_gap.level() == "normal"
+)
 
 acts["Wide"].trigger()
-check("choosing Wide switches the manager", win.font_gap.level() == "wide" and font_gap.active_level() == "wide")
-check("...and moves the check mark", acts["Wide"].isChecked() and not acts["Normal"].isChecked())
-check("...and says so in the status bar", "wide" in win.statusBar().currentMessage().lower())
+check(
+    "choosing Wide switches the manager",
+    win.font_gap.level() == "wide" and font_gap.active_level() == "wide",
+)
+check(
+    "...and moves the check mark",
+    acts["Wide"].isChecked() and not acts["Normal"].isChecked(),
+)
+check(
+    "...and says so in the status bar",
+    "wide" in win.statusBar().currentMessage().lower(),
+)
 acts["Off"].trigger()
-check("choosing Off switches it off", win.font_gap.level() == "off" and font_gap.active_level() == "off")
-saved = _isolated_settings(font_settings.ORG, font_settings.APP).value("experimental/fontGapLevel", "", type=str)
+check(
+    "choosing Off switches it off",
+    win.font_gap.level() == "off" and font_gap.active_level() == "off",
+)
+saved = _isolated_settings(font_settings.ORG, font_settings.APP).value(
+    "experimental/fontGapLevel", "", type=str
+)
 check("the choice is remembered", saved == "off", saved)
 win.canvas.document().setModified(False)
 win.close()
 
 win2 = main.MainWindow()
-check("a new window starts with the remembered level", win2.font_gap.level() == "off"
-      and win2._font_gap_actions["off"].isChecked())
+check(
+    "a new window starts with the remembered level",
+    win2.font_gap.level() == "off" and win2._font_gap_actions["off"].isChecked(),
+)
 win2._on_font_gap_failed("boom")
-check("a reported failure ticks Off in the menu and says so",
-      win2._font_gap_actions["off"].isChecked() and "turned off" in win2.statusBar().currentMessage())
+check(
+    "a reported failure ticks Off in the menu and says so",
+    win2._font_gap_actions["off"].isChecked()
+    and "turned off" in win2.statusBar().currentMessage(),
+)
 win2._set_font_gap_level("normal")
 win2.canvas.document().setModified(False)
 win2.close()

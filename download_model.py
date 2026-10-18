@@ -25,8 +25,9 @@ import time
 from pathlib import Path
 
 from voice_to_urdu import MODEL_ID, MODEL_DIR, local_model_available  # single source of
-                                                # truth for which model this app uses —
-                                                # see voice_to_urdu.py to change it
+
+# truth for which model this app uses —
+# see voice_to_urdu.py to change it
 MAX_RETRIES = 6
 
 
@@ -40,18 +41,24 @@ def download_model(model_id=MODEL_ID, output_dir=MODEL_DIR, max_retries=MAX_RETR
 
     output_dir = Path(output_dir)
     if local_model_available():
-        print(f"Already downloaded at {output_dir} — delete that folder first if you want to re-download.")
+        print(
+            f"Already downloaded at {output_dir} — delete that folder first if you want to re-download."
+        )
         return True
     if output_dir.exists() and any(output_dir.iterdir()):
-        print(f"{output_dir} exists but looks incomplete (an interrupted earlier download?) "
-              f"— removing it and starting over.")
+        print(
+            f"{output_dir} exists but looks incomplete (an interrupted earlier download?) "
+            f"— removing it and starting over."
+        )
         shutil.rmtree(output_dir)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     print(f"Downloading {model_id} into {output_dir} ...")
-    print("This is a one-time download (roughly 1.4GB for the default model — see MODEL_ID "
-          "in voice_to_urdu.py for smaller/larger alternatives). Needs internet; the app "
-          "works fully offline afterwards.")
+    print(
+        "This is a one-time download (roughly 1.4GB for the default model — see MODEL_ID "
+        "in voice_to_urdu.py for smaller/larger alternatives). Needs internet; the app "
+        "works fully offline afterwards."
+    )
 
     for attempt in range(1, max_retries + 1):
         try:
@@ -84,7 +91,7 @@ def download_model(model_id=MODEL_ID, output_dir=MODEL_DIR, max_retries=MAX_RETR
         except Exception as e:
             print(f"Attempt {attempt}/{max_retries} failed: {e}")
             if attempt < max_retries:
-                wait = min(2 ** attempt, 60)
+                wait = min(2**attempt, 60)
                 print(f"Retrying in {wait}s...")
                 time.sleep(wait)
                 # No cleanup between retries -- snapshot_download() is
@@ -96,7 +103,9 @@ def download_model(model_id=MODEL_ID, output_dir=MODEL_DIR, max_retries=MAX_RETR
                 # is ultimately exhausted still gets cleaned up below.
             else:
                 print()
-                print("All retries failed. If this keeps happening, you can download the files")
+                print(
+                    "All retries failed. If this keeps happening, you can download the files"
+                )
                 print(f"by hand from https://huggingface.co/{model_id}/tree/main")
                 print(f"and place them in: {output_dir}")
                 shutil.rmtree(output_dir, ignore_errors=True)

@@ -40,6 +40,7 @@ understood and fixed rather than worked around.
 
     python test_context_menu.py
 """
+
 import faulthandler
 import os
 import sys
@@ -65,6 +66,7 @@ def _isolated_settings(org, app=None, *_ignored):
 
 
 import font_settings
+
 font_settings.QSettings = _isolated_settings
 
 app = QApplication(sys.argv)
@@ -75,13 +77,17 @@ app = QApplication(sys.argv)
 # the module docstring for how costly skipping this was to track down.
 QStandardPaths.setTestModeEnabled(True)
 import main
+
 main.QSettings = _isolated_settings
 
 results = []
 
 
 def check(label, ok, detail=""):
-    print(f"[{'OK' if ok else 'FAIL'}] {label}" + (f" — {detail}" if detail and not ok else ""))
+    print(
+        f"[{'OK' if ok else 'FAIL'}] {label}"
+        + (f" — {detail}" if detail and not ok else "")
+    )
     results.append(ok)
 
 
@@ -124,15 +130,20 @@ def fire_context_menu(zoom_pct, on_open):
         popup = captured.get("popup")
         try:
             on_open(popup)
-        except Exception as exc:  # pragma: no cover - surfaced via captured, not raised in the timer
+        except (
+            Exception
+        ) as exc:  # pragma: no cover - surfaced via captured, not raised in the timer
             captured["error"] = exc
         if popup is not None:
             popup.close()
 
     QTimer.singleShot(0, during)
     try:
-        event = QContextMenuEvent(QContextMenuEvent.Reason.Mouse, QPoint(20, 20),
-                                  win.canvas.mapToGlobal(QPoint(20, 20)))
+        event = QContextMenuEvent(
+            QContextMenuEvent.Reason.Mouse,
+            QPoint(20, 20),
+            win.canvas.mapToGlobal(QPoint(20, 20)),
+        )
         win.canvas.contextMenuEvent(event)
     finally:
         del win.canvas.createStandardContextMenu  # restore the real (bound) method
@@ -142,10 +153,18 @@ def fire_context_menu(zoom_pct, on_open):
 # ------------------------------------------------------- basic open/close
 cap = fire_context_menu(100, lambda popup: None)
 check("a popup actually appeared", cap.get("popup") is not None)
-check("it's the standard context menu (has Cut/Copy/Paste-style actions)",
-      cap["popup"] is not None and any(a.text() for a in cap["popup"].actions()))
-check("context_menu_open was True while the menu was up", cap.get("context_menu_open") is True)
-check("context_menu_open is False again now that it's closed", win.canvas.context_menu_open is False)
+check(
+    "it's the standard context menu (has Cut/Copy/Paste-style actions)",
+    cap["popup"] is not None and any(a.text() for a in cap["popup"].actions()),
+)
+check(
+    "context_menu_open was True while the menu was up",
+    cap.get("context_menu_open") is True,
+)
+check(
+    "context_menu_open is False again now that it's closed",
+    win.canvas.context_menu_open is False,
+)
 check("no error while the menu was open", "error" not in cap, str(cap.get("error")))
 
 # -------------------------------------- the actual bug: proxy + the fix
@@ -153,13 +172,20 @@ for zoom in (50, 100, 214, 300):
     cap = fire_context_menu(zoom, lambda popup: None)
     popup = cap.get("popup")
     proxy = popup.graphicsProxyWidget() if popup is not None else None
-    check(f"zoom {zoom}%: menu is auto-embedded in a proxy (confirms the "
-          f"mechanism the bug report describes is really happening)",
-          proxy is not None)
+    check(
+        f"zoom {zoom}%: menu is auto-embedded in a proxy (confirms the "
+        f"mechanism the bug report describes is really happening)",
+        proxy is not None,
+    )
     if proxy is not None:
-        check(f"zoom {zoom}%: ItemIgnoresTransformations is set on that proxy "
-              f"(the fix — keeps the menu a constant on-screen size)",
-              bool(proxy.flags() & QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations))
+        check(
+            f"zoom {zoom}%: ItemIgnoresTransformations is set on that proxy "
+            f"(the fix — keeps the menu a constant on-screen size)",
+            bool(
+                proxy.flags()
+                & QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations
+            ),
+        )
 
 # ------------------------------------------------- the menu still WORKS
 # Not just "doesn't hang" — an action picked from it actually still does
@@ -178,15 +204,20 @@ def trigger_select_all(popup):
 
 
 cap = fire_context_menu(100, trigger_select_all)
-check("triggering 'Select All' from the menu actually selects the text",
-      win.canvas.textCursor().hasSelection() and win.canvas.textCursor().selectedText() != "")
+check(
+    "triggering 'Select All' from the menu actually selects the text",
+    win.canvas.textCursor().hasSelection()
+    and win.canvas.textCursor().selectedText() != "",
+)
 
 # ----------------------------------- "Copy as SVG (Curves)" in the menu
 import time
 
 
 def find_copy_svg(popup):
-    return next((a for a in popup.actions() if a.text() == "Copy as SVG (Curves)"), None)
+    return next(
+        (a for a in popup.actions() if a.text() == "Copy as SVG (Curves)"), None
+    )
 
 
 cap = fire_context_menu(100, lambda popup: None)
@@ -196,27 +227,38 @@ check("it is the very same QAction as the File menu's", entry is win.copy_svg_me
 if entry is not None:
     acts = cap["popup"].actions()
     i = acts.index(entry)
-    check("it comes last, after a separator, below the standard entries",
-          i == len(acts) - 1 and acts[i - 1].isSeparator())
+    check(
+        "it comes last, after a separator, below the standard entries",
+        i == len(acts) - 1 and acts[i - 1].isSeparator(),
+    )
 
 # Clicking it from the menu really copies. The selection from the
 # Select All check above is still active, so this copies the whole line.
 QApplication.clipboard().clear()
 _before = QApplication.clipboard().mimeData()
-check("clipboard cleared before the click", _before is None or not _before.hasFormat("image/svg+xml"))
+check(
+    "clipboard cleared before the click",
+    _before is None or not _before.hasFormat("image/svg+xml"),
+)
 check("there is a selection for it to copy", win.canvas.textCursor().hasSelection())
 cap = fire_context_menu(100, lambda popup: find_copy_svg(popup).trigger())
 deadline = time.time() + 20
 while win._svg_copy_thread.isRunning() and time.time() < deadline:
-    app.processEvents(); time.sleep(0.02)
+    app.processEvents()
+    time.sleep(0.02)
 win._svg_copy_thread.wait(2000)
 app.processEvents()
 mime = QApplication.clipboard().mimeData()
-check("clicking it in the right-click menu put SVG on the clipboard",
-      mime.hasFormat("image/svg+xml") and bytes(mime.data("image/svg+xml")).lstrip().startswith(b"<?xml"))
+check(
+    "clicking it in the right-click menu put SVG on the clipboard",
+    mime.hasFormat("image/svg+xml")
+    and bytes(mime.data("image/svg+xml")).lstrip().startswith(b"<?xml"),
+)
 check("...and the PDF of the same curves", mime.hasFormat("application/pdf"))
 check("...and no raster picture", not mime.hasImage())
-check("the action is re-enabled once the copy finishes", win.copy_svg_menu_act.isEnabled())
+check(
+    "the action is re-enabled once the copy finishes", win.copy_svg_menu_act.isEnabled()
+)
 
 # context_menu_open getting stuck on if something throws while the menu is
 # open isn't tested by deliberately raising here (that reproducibly hung
@@ -228,7 +270,10 @@ check("the action is re-enabled once the copy finishes", win.copy_svg_menu_act.i
 # fault-injection test to demonstrate. What's checked here instead: the
 # window is still in a normal, usable state after several menu
 # open/close cycles at different zoom levels.
-check("context_menu_open is False after everything above", win.canvas.context_menu_open is False)
+check(
+    "context_menu_open is False after everything above",
+    win.canvas.context_menu_open is False,
+)
 win.view.set_zoom(1.75)
 check("zoom still works normally", win.view.zoom() == 1.75, str(win.view.zoom()))
 

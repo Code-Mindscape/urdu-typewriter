@@ -5,23 +5,57 @@ from pathlib import Path
 from datetime import datetime
 
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QToolBar, QComboBox, QSpinBox, QLabel,
-    QFileDialog, QMessageBox, QGraphicsScene, QGraphicsView, QWidget,
-    QVBoxLayout, QSizePolicy, QInputDialog, QGraphicsDropShadowEffect
+    QApplication,
+    QMainWindow,
+    QToolBar,
+    QComboBox,
+    QSpinBox,
+    QLabel,
+    QFileDialog,
+    QMessageBox,
+    QGraphicsScene,
+    QGraphicsView,
+    QWidget,
+    QVBoxLayout,
+    QSizePolicy,
+    QInputDialog,
+    QGraphicsDropShadowEffect,
 )
 from PyQt6.QtGui import (
-    QAction, QActionGroup, QFontDatabase, QFont, QColor, QPainter, QPixmap,
-    QKeySequence, QIcon, QImage, QTextDocument,
+    QAction,
+    QActionGroup,
+    QFontDatabase,
+    QFont,
+    QColor,
+    QPainter,
+    QPixmap,
+    QKeySequence,
+    QIcon,
+    QImage,
+    QTextDocument,
 )
 from PyQt6.QtCore import (
-    Qt, pyqtSignal, QThread, QEvent, QTimer, QSize, QSettings, QStandardPaths,
+    Qt,
+    pyqtSignal,
+    QThread,
+    QEvent,
+    QTimer,
+    QSize,
+    QSettings,
+    QStandardPaths,
 )
 from PyQt6.QtPrintSupport import QPrinter, QPrintDialog
 
 from canvas import PageCanvas
 from dialogs import (
-    NewPageDialog, ExportDialog, ColorSwatchButton, FontManagerDialog,
-    FindReplaceDialog, ColorPickerDialog, SearchableFontCombo, _downscale_if_needed,
+    NewPageDialog,
+    ExportDialog,
+    ColorSwatchButton,
+    FontManagerDialog,
+    FindReplaceDialog,
+    ColorPickerDialog,
+    SearchableFontCombo,
+    _downscale_if_needed,
 )
 from font_check import supports_arabic_joining
 from voice_overlay import VoiceOverlayButton
@@ -57,6 +91,7 @@ class ClickableLabel(QLabel):
     signal built in. Used for the zoom percentage: click it to reset to
     100%, the same convenience most creative apps offer next to a zoom
     readout rather than making a trip to a menu for it."""
+
     clicked = pyqtSignal()
 
     def mousePressEvent(self, event):
@@ -92,6 +127,7 @@ class ZoomableGraphicsView(QGraphicsView):
     the other half of this fix: a large scrollable margin kept around the
     page so that condition essentially never arises.
     """
+
     zoomChanged = pyqtSignal(float)
     MIN_ZOOM = 0.1
     MAX_ZOOM = 6.0
@@ -179,8 +215,12 @@ class ZoomableGraphicsView(QGraphicsView):
         after = self.mapFromScene(scene_anchor)
         delta = after - before
         if delta.x() or delta.y():
-            self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() + delta.x())
-            self.verticalScrollBar().setValue(self.verticalScrollBar().value() + delta.y())
+            self.horizontalScrollBar().setValue(
+                self.horizontalScrollBar().value() + delta.x()
+            )
+            self.verticalScrollBar().setValue(
+                self.verticalScrollBar().value() + delta.y()
+            )
         self.zoomChanged.emit(new_zoom)
 
     def zoom(self):
@@ -194,6 +234,7 @@ class TranscribeThread(QThread):
     (see UtteranceSegmenter in voice_to_urdu.py and the recording queue
     below). Recording itself doesn't need this — sounddevice captures via
     its own internal audio thread — only the transcription step does."""
+
     finished_text = pyqtSignal(str)
     error = pyqtSignal(str)
 
@@ -204,6 +245,7 @@ class TranscribeThread(QThread):
     def run(self):
         try:
             import voice_to_urdu
+
             text = voice_to_urdu.transcribe_urdu(self.audio)
             self.finished_text.emit(text)
         except Exception as e:
@@ -213,12 +255,14 @@ class TranscribeThread(QThread):
 class ModelLoadThread(QThread):
     """Loads the Whisper model in the background at startup, so it's warm
     before the user's first click rather than making them wait for it."""
+
     loaded = pyqtSignal()
     failed = pyqtSignal(str)
 
     def run(self):
         try:
             import voice_to_urdu
+
             voice_to_urdu.get_model()
             self.loaded.emit()
         except Exception as e:
@@ -237,6 +281,7 @@ class ExportThread(QThread):
     safe to touch concurrently from two threads, so this thread must never
     reach back into self.canvas or anything else still live on the GUI
     side; it only touches the independent copies baked into export_fn."""
+
     succeeded = pyqtSignal()
     failed = pyqtSignal(str)
 
@@ -305,23 +350,35 @@ class MainWindow(QMainWindow):
         # Only adopt a saved font that's still available and enabled: one
         # that's since been uninstalled or hidden would otherwise leave the
         # page (and the font picker) pointing at a family that isn't there.
-        if saved_family and saved_family in font_settings.get_enabled_families(default_family):
+        if saved_family and saved_family in font_settings.get_enabled_families(
+            default_family
+        ):
             default_family = saved_family
         default_size = prefs.value("prefs/defaultSize", 36, type=int)
         page_width = prefs.value("prefs/defaultWidth", 794, type=int)
         page_height = prefs.value("prefs/defaultHeight", 1123, type=int)
 
-        self.canvas = PageCanvas(page_width, page_height, QColor("white"), 40,
-                                  default_family=default_family, default_style="Regular",
-                                  default_size=default_size)
+        self.canvas = PageCanvas(
+            page_width,
+            page_height,
+            QColor("white"),
+            40,
+            default_family=default_family,
+            default_style="Regular",
+            default_size=default_size,
+        )
 
         # EXPERIMENTAL (see font_gap.py): a small automatic gap between
         # neighbouring words written in different fonts. Lives purely in the
         # page layout -- not in the document, its undo history, or saved
         # files -- and is switched from Tools > Gap Between Fonts. The saved
         # level is read here so even the first page has it.
-        gap_level = prefs.value("experimental/fontGapLevel", font_gap.DEFAULT_LEVEL, type=str)
-        self.font_gap = font_gap.FontGapManager(self.canvas.document(), gap_level, parent=self)
+        gap_level = prefs.value(
+            "experimental/fontGapLevel", font_gap.DEFAULT_LEVEL, type=str
+        )
+        self.font_gap = font_gap.FontGapManager(
+            self.canvas.document(), gap_level, parent=self
+        )
         self.font_gap.failed.connect(self._on_font_gap_failed)
 
         self.scene = QGraphicsScene()
@@ -359,14 +416,20 @@ class MainWindow(QMainWindow):
         self._refresh_recent_files_menu()
 
         self.word_count_label = QLabel()
-        self.word_count_label.setStyleSheet(f"color: {theme.TEXT_MUTED}; padding-right: 6px;")
+        self.word_count_label.setStyleSheet(
+            f"color: {theme.TEXT_MUTED}; padding-right: 6px;"
+        )
         self.statusBar().addPermanentWidget(self.word_count_label)
         self._word_count_timer = QTimer(self)
         self._word_count_timer.setSingleShot(True)
-        self._word_count_timer.setInterval(300)  # debounced -- see _refresh_word_count's caller below
+        self._word_count_timer.setInterval(
+            300
+        )  # debounced -- see _refresh_word_count's caller below
         self._word_count_timer.timeout.connect(self._refresh_word_count)
         self.canvas.textChanged.connect(self._word_count_timer.start)
-        self.canvas.selectionChanged.connect(self._on_selection_changed_for_format_painter)
+        self.canvas.selectionChanged.connect(
+            self._on_selection_changed_for_format_painter
+        )
         self._refresh_word_count()
 
         self._autosave_timer = QTimer(self)
@@ -375,13 +438,18 @@ class MainWindow(QMainWindow):
         # session, and reset to 60s on every launch. Floor at 5s so a
         # corrupted/zero value can't turn autosave into a tight loop.
         self._autosave_timer.setInterval(
-            max(5, prefs.value("prefs/autosaveIntervalSec", 60, type=int)) * 1000)
+            max(5, prefs.value("prefs/autosaveIntervalSec", 60, type=int)) * 1000
+        )
         self._autosave_timer.timeout.connect(self._autosave_tick)
         self._autosave_timer.start()
 
-        self.canvas.document().setModified(False)  # toolbar setup touches char formats; that isn't "user modified"
+        self.canvas.document().setModified(
+            False
+        )  # toolbar setup touches char formats; that isn't "user modified"
         self.canvas.document().modificationChanged.connect(self._update_title)
-        self.canvas.document().modificationChanged.connect(self.save_menu_action.setEnabled)
+        self.canvas.document().modificationChanged.connect(
+            self.save_menu_action.setEnabled
+        )
         self._update_title()
         self._update_status()
         self._update_font_warning(default_family)
@@ -422,7 +490,9 @@ class MainWindow(QMainWindow):
         self.save_menu_action = QAction("Save Project", self)
         self.save_menu_action.setShortcut(QKeySequence.StandardKey.Save)
         self.save_menu_action.triggered.connect(self.save_project)
-        self.save_menu_action.setEnabled(False)  # nothing modified yet -- see modificationChanged wiring below
+        self.save_menu_action.setEnabled(
+            False
+        )  # nothing modified yet -- see modificationChanged wiring below
         file_menu.addAction(self.save_menu_action)
 
         save_as_act = QAction("Save Project As…", self)
@@ -450,7 +520,7 @@ class MainWindow(QMainWindow):
             "installed. Only the letterforms are copied, cropped tight: no page "
             "background, border, or empty page area. The clipboard gets real vector "
             "data in every form an app might look for — SVG, plus a PDF of the same "
-            "curves (on Windows also under the name \"Portable Document Format\", "
+            'curves (on Windows also under the name "Portable Document Format", '
             "the name Affinity itself uses for PDF) — and never a picture. If an app "
             "still pastes nothing, try its Paste Special, or use Export ▸ SVG / PDF / "
             "EPS and the app's Open/Place instead. Use Copy as Image for a plain picture."
@@ -516,7 +586,9 @@ class MainWindow(QMainWindow):
         edit_menu.addSeparator()
 
         convert_sel_act = QAction("Convert Selection to Urdu", self)
-        convert_sel_act.setToolTip("Transliterates a Roman-Urdu selection to Urdu script")
+        convert_sel_act.setToolTip(
+            "Transliterates a Roman-Urdu selection to Urdu script"
+        )
         convert_sel_act.triggered.connect(self.convert_selection_to_urdu)
         edit_menu.addAction(convert_sel_act)
         edit_menu.addSeparator()
@@ -549,7 +621,9 @@ class MainWindow(QMainWindow):
         highlight_act.triggered.connect(self.choose_highlight_color)
         format_menu.addAction(highlight_act)
         clear_highlight_act = QAction("Clear Highlight", self)
-        clear_highlight_act.triggered.connect(lambda: self.canvas.set_pending_highlight(None))
+        clear_highlight_act.triggered.connect(
+            lambda: self.canvas.set_pending_highlight(None)
+        )
         format_menu.addAction(clear_highlight_act)
         format_menu.addSeparator()
 
@@ -582,18 +656,23 @@ class MainWindow(QMainWindow):
 
         format_painter_act = QAction("Format Painter", self)
         format_painter_act.setToolTip(
-            "Copies the formatting at the cursor or selection, then applies it to the next thing you select")
+            "Copies the formatting at the cursor or selection, then applies it to the next thing you select"
+        )
         format_painter_act.triggered.connect(self.activate_format_painter)
         format_menu.addAction(format_painter_act)
 
         view_menu = menubar.addMenu("&View")
         zoom_in_act = QAction("Zoom In", self)
         zoom_in_act.setShortcut(QKeySequence("Ctrl+="))
-        zoom_in_act.triggered.connect(lambda: self.view.set_zoom(self.view.zoom() * 1.2))
+        zoom_in_act.triggered.connect(
+            lambda: self.view.set_zoom(self.view.zoom() * 1.2)
+        )
         view_menu.addAction(zoom_in_act)
         zoom_out_act = QAction("Zoom Out", self)
         zoom_out_act.setShortcut(QKeySequence("Ctrl+-"))
-        zoom_out_act.triggered.connect(lambda: self.view.set_zoom(self.view.zoom() / 1.2))
+        zoom_out_act.triggered.connect(
+            lambda: self.view.set_zoom(self.view.zoom() / 1.2)
+        )
         view_menu.addAction(zoom_out_act)
         zoom_reset_act = QAction("Reset Zoom (100%)", self)
         zoom_reset_act.setShortcut(QKeySequence("Ctrl+0"))
@@ -606,7 +685,9 @@ class MainWindow(QMainWindow):
         view_menu.addSeparator()
         for pct in (25, 50, 100, 150, 200, 400):
             preset_act = QAction(f"{pct}%", self)
-            preset_act.triggered.connect(lambda checked=False, p=pct: self.view.set_zoom(p / 100.0))
+            preset_act.triggered.connect(
+                lambda checked=False, p=pct: self.view.set_zoom(p / 100.0)
+            )
             view_menu.addAction(preset_act)
         view_menu.addSeparator()
         stats_act = QAction("Document Statistics…", self)
@@ -635,7 +716,8 @@ class MainWindow(QMainWindow):
             "When words in different fonts sit next to each other on a line, adds a small "
             "extra gap between them so they don't touch. Affects the page, every export, "
             "Copy as SVG, and printing alike. Nothing is stored in your text or files — "
-            "choose Off to see the page exactly as it was.")
+            "choose Off to see the page exactly as it was."
+        )
         self._font_gap_group = QActionGroup(self)
         self._font_gap_group.setExclusive(True)
         self._font_gap_actions = {}
@@ -643,7 +725,9 @@ class MainWindow(QMainWindow):
             act = QAction(font_gap.LEVEL_LABELS[level], self)
             act.setCheckable(True)
             act.setChecked(level == self.font_gap.level())
-            act.triggered.connect(lambda _checked=False, lv=level: self._set_font_gap_level(lv))
+            act.triggered.connect(
+                lambda _checked=False, lv=level: self._set_font_gap_level(lv)
+            )
             self._font_gap_group.addAction(act)
             gap_menu.addAction(act)
             self._font_gap_actions[level] = act
@@ -655,19 +739,27 @@ class MainWindow(QMainWindow):
 
     def _set_font_gap_level(self, level):
         self.font_gap.set_level(level)
-        QSettings(font_settings.ORG, font_settings.APP).setValue("experimental/fontGapLevel", level)
+        QSettings(font_settings.ORG, font_settings.APP).setValue(
+            "experimental/fontGapLevel", level
+        )
         for lv, act in self._font_gap_actions.items():
             act.setChecked(lv == level)
         self.statusBar().showMessage(
-            "Gap between fonts: off" if level == "off"
-            else f"Gap between fonts: {font_gap.LEVEL_LABELS[level].lower()}", 4000)
+            (
+                "Gap between fonts: off"
+                if level == "off"
+                else f"Gap between fonts: {font_gap.LEVEL_LABELS[level].lower()}"
+            ),
+            4000,
+        )
 
     def _on_font_gap_failed(self, message):
         # font_gap already restored the page and switched itself off.
         for lv, act in getattr(self, "_font_gap_actions", {}).items():
             act.setChecked(lv == "off")
         self.statusBar().showMessage(
-            f"Gap between fonts was turned off after an error ({message})", 10000)
+            f"Gap between fonts was turned off after an error ({message})", 10000
+        )
 
     def _build_toolbar(self, default_family):
         tb = QToolBar("Main")
@@ -680,13 +772,16 @@ class MainWindow(QMainWindow):
         self.font_combo.setMinimumWidth(170)
         self.font_combo.setToolTip(
             "Font family — applies to the current selection, or what you type next. "
-            "Click to open the list; type to search.")
+            "Click to open the list; type to search."
+        )
         self.font_combo.currentTextChanged.connect(self._on_font_combo_changed)
         tb.addWidget(self.font_combo)
 
         self.style_combo = QComboBox()
         self.style_combo.setMinimumWidth(100)
-        self.style_combo.setToolTip("Font style/weight, as offered by the selected font family")
+        self.style_combo.setToolTip(
+            "Font style/weight, as offered by the selected font family"
+        )
         self.style_combo.currentTextChanged.connect(self._on_style_combo_changed)
         tb.addWidget(self.style_combo)
 
@@ -718,14 +813,18 @@ class MainWindow(QMainWindow):
             act.setToolTip(f"Align {label.lower()}")
             act.setCheckable(True)
             act.setChecked(label == "Right")
-            act.triggered.connect(lambda checked, a=alignment: self.canvas.apply_alignment(a))
+            act.triggered.connect(
+                lambda checked, a=alignment: self.canvas.apply_alignment(a)
+            )
             align_group.addAction(act)
             tb.addAction(act)
             # Icon-only for this action specifically (its tooltip still
             # carries the label) rather than changing the whole toolbar's
             # button style, which would leave icon-less actions like
             # "Roman → Urdu" below with no visible label at all.
-            tb.widgetForAction(act).setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+            tb.widgetForAction(act).setToolButtonStyle(
+                Qt.ToolButtonStyle.ToolButtonIconOnly
+            )
             self.alignment_actions.append(act)
         tb.addSeparator()
 
@@ -736,17 +835,31 @@ class MainWindow(QMainWindow):
         # Letter Spacing…) and deliberately isn't here.
         lh_lo, lh_hi = PageCanvas.LINE_HEIGHT_RANGE
         self.line_height_spin = self._add_spacing_control(
-            tb, "line-height", lh_lo, lh_hi, 5, "%", self.canvas.apply_line_spacing,
+            tb,
+            "line-height",
+            lh_lo,
+            lh_hi,
+            5,
+            "%",
+            self.canvas.apply_line_spacing,
             "Line height — space between lines, as a % of normal (100 = single, "
             "150 = 1.5×). Updates the page live; applies to the current paragraph, "
-            "or every paragraph in the selection.")
+            "or every paragraph in the selection.",
+        )
         ws_lo, ws_hi = PageCanvas.WORD_SPACING_RANGE
         self.word_spacing_spin = self._add_spacing_control(
-            tb, "word-spacing", ws_lo, ws_hi, 1, " px", self.canvas.set_word_spacing,
+            tb,
+            "word-spacing",
+            ws_lo,
+            ws_hi,
+            1,
+            " px",
+            self.canvas.set_word_spacing,
             "Word spacing — extra space between words, in pixels (0 = normal, "
             "negative = tighter). Updates the page live; applies to the selection, "
             "or the current paragraph if nothing is selected. Doesn't change the "
-            "spacing between letters.")
+            "spacing between letters.",
+        )
         tb.addSeparator()
 
         # Keep both boxes showing the text under the cursor / selection
@@ -766,16 +879,22 @@ class MainWindow(QMainWindow):
         tb.addAction(self.roman_urdu_act)
 
         guide_act = QAction("Guide", self)
-        guide_act.setToolTip("Roman → Urdu typing guide — see every letter combination, or just the Urdu alphabet")
+        guide_act.setToolTip(
+            "Roman → Urdu typing guide — see every letter combination, or just the Urdu alphabet"
+        )
         guide_act.triggered.connect(self.open_roman_urdu_guide)
         tb.addAction(guide_act)
         tb.addSeparator()
 
         zoom_out_act = QAction(QIcon(str(ICONS_DIR / "zoom-out.svg")), "Zoom Out", self)
         zoom_out_act.setToolTip("Zoom out (Ctrl+-, or Ctrl+scroll)")
-        zoom_out_act.triggered.connect(lambda: self.view.set_zoom(self.view.zoom() / 1.2))
+        zoom_out_act.triggered.connect(
+            lambda: self.view.set_zoom(self.view.zoom() / 1.2)
+        )
         tb.addAction(zoom_out_act)
-        tb.widgetForAction(zoom_out_act).setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+        tb.widgetForAction(zoom_out_act).setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonIconOnly
+        )
 
         self.zoom_label = ClickableLabel("100%")
         self.zoom_label.setMinimumWidth(44)
@@ -787,11 +906,17 @@ class MainWindow(QMainWindow):
 
         zoom_in_act = QAction(QIcon(str(ICONS_DIR / "zoom-in.svg")), "Zoom In", self)
         zoom_in_act.setToolTip("Zoom in (Ctrl+=, or Ctrl+scroll)")
-        zoom_in_act.triggered.connect(lambda: self.view.set_zoom(self.view.zoom() * 1.2))
+        zoom_in_act.triggered.connect(
+            lambda: self.view.set_zoom(self.view.zoom() * 1.2)
+        )
         tb.addAction(zoom_in_act)
-        tb.widgetForAction(zoom_in_act).setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+        tb.widgetForAction(zoom_in_act).setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonIconOnly
+        )
 
-        self.zoom_tool_act = QAction(QIcon(str(ICONS_DIR / "zoom-in.svg")), "Zoom Tool", self)
+        self.zoom_tool_act = QAction(
+            QIcon(str(ICONS_DIR / "zoom-in.svg")), "Zoom Tool", self
+        )
         self.zoom_tool_act.setCheckable(True)
         self.zoom_tool_act.setToolTip(
             "Zoom tool — while on, click the page to zoom in, right-click (or "
@@ -801,7 +926,9 @@ class MainWindow(QMainWindow):
         )
         self.zoom_tool_act.toggled.connect(self._toggle_zoom_tool)
         tb.addAction(self.zoom_tool_act)
-        tb.widgetForAction(self.zoom_tool_act).setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+        tb.widgetForAction(self.zoom_tool_act).setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonIconOnly
+        )
         tb.addSeparator()
 
         # Not on any menu -- just a quick, discoverable-by-convention way
@@ -809,7 +936,9 @@ class MainWindow(QMainWindow):
         # backs out of a lot of other "modal" tools in most editors.
         exit_zoom_tool_act = QAction(self)
         exit_zoom_tool_act.setShortcut(QKeySequence("Esc"))
-        exit_zoom_tool_act.triggered.connect(lambda: self.zoom_tool_act.setChecked(False))
+        exit_zoom_tool_act.triggered.connect(
+            lambda: self.zoom_tool_act.setChecked(False)
+        )
         self.addAction(exit_zoom_tool_act)
 
         fonts_act = QAction("Fonts…", self)
@@ -838,8 +967,9 @@ class MainWindow(QMainWindow):
         tb.addAction(self.export_toolbar_action)
 
     # --------------------------------------------------- spacing controls --
-    def _add_spacing_control(self, toolbar, icon_name, minimum, maximum, step, suffix,
-                             on_change, tooltip):
+    def _add_spacing_control(
+        self, toolbar, icon_name, minimum, maximum, step, suffix, on_change, tooltip
+    ):
         """An icon + number box pair on `toolbar`. `on_change(int)` is called
         on every change of the number, so the effect is live. Pressing Enter
         in the box hands focus back to the page, ready to keep typing."""
@@ -886,8 +1016,12 @@ class MainWindow(QMainWindow):
     def _sync_spacing_controls(self, *_ignored):
         if not hasattr(self, "word_spacing_spin"):
             return  # signal fired while the toolbar is still being built
-        self._set_spin_quietly(self.line_height_spin, self.canvas.current_line_spacing())
-        self._set_spin_quietly(self.word_spacing_spin, int(round(self.canvas.current_word_spacing())))
+        self._set_spin_quietly(
+            self.line_height_spin, self.canvas.current_line_spacing()
+        )
+        self._set_spin_quietly(
+            self.word_spacing_spin, int(round(self.canvas.current_word_spacing()))
+        )
 
     # -------------------------------------------------------- font picker --
     def _refresh_font_combo(self, select=None):
@@ -897,7 +1031,9 @@ class MainWindow(QMainWindow):
         self.font_combo.clear()
         for fam in enabled:
             self.font_combo.addItem(fam)
-            self.font_combo.setItemData(self.font_combo.count() - 1, QFont(fam, 11), Qt.ItemDataRole.FontRole)
+            self.font_combo.setItemData(
+                self.font_combo.count() - 1, QFont(fam, 11), Qt.ItemDataRole.FontRole
+            )
         idx = self.font_combo.findText(select)
         self.font_combo.setCurrentIndex(idx if idx >= 0 else 0)
         self.font_combo.blockSignals(False)
@@ -971,7 +1107,9 @@ class MainWindow(QMainWindow):
                     )
                 else:
                     vsb = self.view.verticalScrollBar()
-                    steps = event.angleDelta().y() / 120.0  # fractional for high-res trackpads
+                    steps = (
+                        event.angleDelta().y() / 120.0
+                    )  # fractional for high-res trackpads
                     vsb.setValue(round(vsb.value() - steps * vsb.singleStep() * 3))
             return True
         # Zoom tool: while self.zoom_tool_act is checked, a click on the
@@ -983,13 +1121,17 @@ class MainWindow(QMainWindow):
         # Alt+left click, zooms out — the standard Adobe/Affinity
         # convention. Consuming the press here also stops QTextEdit's own
         # right-click context menu from appearing while the tool is on.
-        if (obj is self.canvas and event.type() == QEvent.Type.MouseButtonPress
-                and self.zoom_tool_act.isChecked()):
+        if (
+            obj is self.canvas
+            and event.type() == QEvent.Type.MouseButtonPress
+            and self.zoom_tool_act.isChecked()
+        ):
             if not self.canvas.context_menu_open:
                 button = event.button()
-                zoom_out = (button == Qt.MouseButton.RightButton or
-                            (button == Qt.MouseButton.LeftButton and
-                             event.modifiers() & Qt.KeyboardModifier.AltModifier))
+                zoom_out = button == Qt.MouseButton.RightButton or (
+                    button == Qt.MouseButton.LeftButton
+                    and event.modifiers() & Qt.KeyboardModifier.AltModifier
+                )
                 if zoom_out or button == Qt.MouseButton.LeftButton:
                     self.view.zoom_from_canvas_wheel(
                         event.position(), -1 if zoom_out else 1, self.canvas_proxy
@@ -1014,8 +1156,9 @@ class MainWindow(QMainWindow):
     def convert_selection_to_urdu(self):
         if not self.canvas.convert_selection_to_urdu():
             QMessageBox.information(
-                self, "Nothing selected",
-                "Select some Roman-Urdu text first, then use this to convert it."
+                self,
+                "Nothing selected",
+                "Select some Roman-Urdu text first, then use this to convert it.",
             )
 
     # ------------------------------------------------------------ voice --
@@ -1047,7 +1190,9 @@ class MainWindow(QMainWindow):
             return
         self.voice_overlay.set_state("loading")
         self._model_load_thread = ModelLoadThread(self)
-        self._model_load_thread.loaded.connect(lambda: self.voice_overlay.set_state("idle"))
+        self._model_load_thread.loaded.connect(
+            lambda: self.voice_overlay.set_state("idle")
+        )
         self._model_load_thread.failed.connect(self._on_model_load_failed)
         self._model_load_thread.start()
 
@@ -1068,16 +1213,20 @@ class MainWindow(QMainWindow):
         if state == "error":
             if self._voice_load_error:
                 self.statusBar().showMessage(
-                    f"Retrying — last attempt failed: {self._voice_load_error}", 8000)
+                    f"Retrying — last attempt failed: {self._voice_load_error}", 8000
+                )
             self._start_model_preload()  # retry
             return
         if state == "loading":
             self.statusBar().showMessage(
-                "Still loading the speech model — one moment, then click again.", 4000)
+                "Still loading the speech model — one moment, then click again.", 4000
+            )
             return
         if state == "transcribing":
             self.statusBar().showMessage(
-                "Still finishing up the last recording — one moment, then click again.", 4000)
+                "Still finishing up the last recording — one moment, then click again.",
+                4000,
+            )
             return
         if state == "listening":
             self._stop_recording()
@@ -1089,10 +1238,11 @@ class MainWindow(QMainWindow):
             import voice_to_urdu
         except ImportError:
             QMessageBox.warning(
-                self, "Voice input not installed",
+                self,
+                "Voice input not installed",
                 "Voice-to-Urdu needs a couple of extra packages that aren't installed.\n\n"
                 "Run:  pip install -r requirements-voice.txt\n\n"
-                "See that file for platform-specific notes (microphone support)."
+                "See that file for platform-specific notes (microphone support).",
             )
             return
         try:
@@ -1107,7 +1257,9 @@ class MainWindow(QMainWindow):
         self._recording_poll_ticks = 0
         self.voice_overlay.set_state("listening")
         self.voice_overlay.set_audio_level(0.0)
-        self.statusBar().showMessage("Recording — transcribing live as you speak. Click again to stop.")
+        self.statusBar().showMessage(
+            "Recording — transcribing live as you speak. Click again to stop."
+        )
         self._poll_timer.start()
 
     def _poll_recording(self):
@@ -1129,12 +1281,17 @@ class MainWindow(QMainWindow):
         # a proactive word rather than staying silent indefinitely.
         self._recording_poll_ticks += 1
         elapsed_ms = self._recording_poll_ticks * self.POLL_INTERVAL_MS
-        if (not self._silence_warning_shown and elapsed_ms >= 4000
-                and not self._segmenter.ever_heard_speech):
+        if (
+            not self._silence_warning_shown
+            and elapsed_ms >= 4000
+            and not self._segmenter.ever_heard_speech
+        ):
             self._silence_warning_shown = True
             self.statusBar().showMessage(
                 "Not picking up any sound yet — check the right microphone is "
-                "selected and its input level in your OS sound settings.", 6000)
+                "selected and its input level in your OS sound settings.",
+                6000,
+            )
 
     def _stop_recording(self):
         self._poll_timer.stop()
@@ -1221,7 +1378,11 @@ class MainWindow(QMainWindow):
         )
 
     def _update_title(self):
-        name = Path(self.current_project_path).name if self.current_project_path else "Untitled"
+        name = (
+            Path(self.current_project_path).name
+            if self.current_project_path
+            else "Untitled"
+        )
         star = "*" if self.canvas.document().isModified() else ""
         self.setWindowTitle(f"{star}{name} — {APP_TITLE}")
 
@@ -1248,7 +1409,11 @@ class MainWindow(QMainWindow):
 
     # ------------------------------------------------------------ autosave --
     def _recovery_file_path(self) -> Path:
-        data_dir = Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppDataLocation))
+        data_dir = Path(
+            QStandardPaths.writableLocation(
+                QStandardPaths.StandardLocation.AppDataLocation
+            )
+        )
         data_dir.mkdir(parents=True, exist_ok=True)
         return data_dir / "autosave_recovery.utw"
 
@@ -1257,7 +1422,8 @@ class MainWindow(QMainWindow):
         if not path.exists():
             return
         resp = QMessageBox.question(
-            self, "Recover unsaved work?",
+            self,
+            "Recover unsaved work?",
             "It looks like the app didn't close normally last time, and there's an "
             "autosaved page from that session.\n\nOpen it?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -1277,7 +1443,9 @@ class MainWindow(QMainWindow):
                 self._update_status()
                 self.statusBar().showMessage("Recovered your last unsaved page.", 5000)
             except Exception as e:
-                QMessageBox.warning(self, "Recovery failed", f"Couldn't open the autosaved page.\n\n{e}")
+                QMessageBox.warning(
+                    self, "Recovery failed", f"Couldn't open the autosaved page.\n\n{e}"
+                )
         # Either way, this specific snapshot has now been offered and
         # decided on — delete it so it isn't offered again next launch.
         try:
@@ -1304,12 +1472,16 @@ class MainWindow(QMainWindow):
 
     def open_new_page_dialog(self):
         dlg = NewPageDialog(
-            self.canvas.page_width, self.canvas.page_height,
-            self.canvas.background_color(), self.canvas.document().documentMargin(),
+            self.canvas.page_width,
+            self.canvas.page_height,
+            self.canvas.background_color(),
+            self.canvas.document().documentMargin(),
             background_image=self.canvas.background_image(),
             background_image_mode=self.canvas.background_image_mode(),
-            border_width=self.canvas.border_width(), border_color=self.canvas.border_color(),
-            border_style=self.canvas.border_style(), vertical_align=self.canvas.vertical_align(),
+            border_width=self.canvas.border_width(),
+            border_color=self.canvas.border_color(),
+            border_style=self.canvas.border_style(),
+            vertical_align=self.canvas.vertical_align(),
             parent=self,
         )
         if dlg.exec():
@@ -1317,8 +1489,12 @@ class MainWindow(QMainWindow):
             self.canvas.resize_page(v["width"], v["height"])
             self.canvas.set_margin(v["margin"])
             self.canvas.set_background(v["background"])
-            self.canvas.set_background_image(v["background_image"], v["background_image_mode"])
-            self.canvas.set_border(v["border_width"], v["border_color"], v["border_style"])
+            self.canvas.set_background_image(
+                v["background_image"], v["background_image_mode"]
+            )
+            self.canvas.set_border(
+                v["border_width"], v["border_color"], v["border_style"]
+            )
             self.canvas.set_vertical_align(v["vertical_align"])
             self._sync_scene_rect()
             self._update_status()
@@ -1354,7 +1530,9 @@ class MainWindow(QMainWindow):
     def open_project(self):
         if not self._confirm_discard_unsaved():
             return
-        path, _ = QFileDialog.getOpenFileName(self, "Open Project", "", project_io.FILE_FILTER)
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Open Project", "", project_io.FILE_FILTER
+        )
         if not path:
             return
         self._load_project_from_path(path)
@@ -1363,7 +1541,9 @@ class MainWindow(QMainWindow):
         if not self._confirm_discard_unsaved():
             return
         if not Path(path).exists():
-            QMessageBox.warning(self, "File not found", f"This file no longer exists:\n\n{path}")
+            QMessageBox.warning(
+                self, "File not found", f"This file no longer exists:\n\n{path}"
+            )
             self._recent_files = [p for p in self._recent_files if p != path]
             self._save_recent_files()
             self._refresh_recent_files_menu()
@@ -1390,11 +1570,12 @@ class MainWindow(QMainWindow):
             self._add_recent_file(path)
         except Exception as e:
             QMessageBox.critical(
-                self, "Couldn't open project",
+                self,
+                "Couldn't open project",
                 f"The file was read, but something went wrong applying it to the "
                 f"page, and the document may now be in a mixed state.\n\n"
                 f"Worth undoing (Ctrl+Z) or starting a fresh page before continuing.\n\n"
-                f"Details: {e}"
+                f"Details: {e}",
             )
 
     # ------------------------------------------------------------ recent files --
@@ -1417,7 +1598,7 @@ class MainWindow(QMainWindow):
         path = str(path)
         self._recent_files = [p for p in self._recent_files if p != path]
         self._recent_files.insert(0, path)
-        self._recent_files = self._recent_files[:self.MAX_RECENT_FILES]
+        self._recent_files = self._recent_files[: self.MAX_RECENT_FILES]
         self._save_recent_files()
         self._refresh_recent_files_menu()
 
@@ -1438,11 +1619,15 @@ class MainWindow(QMainWindow):
         for path in existing:
             act = QAction(Path(path).name, self)
             try:
-                mtime = datetime.fromtimestamp(Path(path).stat().st_mtime).strftime("%b %d, %Y %I:%M %p")
+                mtime = datetime.fromtimestamp(Path(path).stat().st_mtime).strftime(
+                    "%b %d, %Y %I:%M %p"
+                )
                 act.setToolTip(f"{path}\nLast modified {mtime}")
             except OSError:
                 act.setToolTip(path)
-            act.triggered.connect(lambda checked=False, p=path: self._open_recent_file(p))
+            act.triggered.connect(
+                lambda checked=False, p=path: self._open_recent_file(p)
+            )
             self.recent_files_menu.addAction(act)
         self.recent_files_menu.addSeparator()
         clear_act = QAction("Clear Recent Files", self)
@@ -1484,14 +1669,21 @@ class MainWindow(QMainWindow):
         margin = 40  # a little breathing room around the page, not edge-to-edge
         available_w = max(1, viewport_size.width() - margin)
         available_h = max(1, viewport_size.height() - margin)
-        scale = min(available_w / self.canvas.page_width, available_h / self.canvas.page_height)
+        scale = min(
+            available_w / self.canvas.page_width, available_h / self.canvas.page_height
+        )
         self.view.set_zoom(scale)
 
     def _enter_exact_zoom(self):
         current_pct = round(self.view.zoom() * 100)
         pct, ok = QInputDialog.getInt(
-            self, "Zoom", "Zoom percentage:", current_pct,
-            round(self.view.MIN_ZOOM * 100), round(self.view.MAX_ZOOM * 100), 5,
+            self,
+            "Zoom",
+            "Zoom percentage:",
+            current_pct,
+            round(self.view.MIN_ZOOM * 100),
+            round(self.view.MAX_ZOOM * 100),
+            5,
         )
         if ok:
             self.view.set_zoom(pct / 100.0)
@@ -1504,8 +1696,13 @@ class MainWindow(QMainWindow):
 
     def choose_letter_spacing(self):
         value, ok = QInputDialog.getInt(
-            self, "Letter Spacing", "Spacing (% of normal — 100 = normal):",
-            self.canvas.pending_letter_spacing(), 10, 500, 5,
+            self,
+            "Letter Spacing",
+            "Spacing (% of normal — 100 = normal):",
+            self.canvas.pending_letter_spacing(),
+            10,
+            500,
+            5,
         )
         if ok:
             self.canvas.set_pending_letter_spacing(value)
@@ -1513,8 +1710,13 @@ class MainWindow(QMainWindow):
     def choose_line_spacing(self):
         lo, hi = PageCanvas.LINE_HEIGHT_RANGE
         value, ok = QInputDialog.getInt(
-            self, "Line Height", "Line height (% of normal — 100 = single, 150 = 1.5x, ...):",
-            self.canvas.current_line_spacing(), lo, hi, 5,
+            self,
+            "Line Height",
+            "Line height (% of normal — 100 = single, 150 = 1.5x, ...):",
+            self.canvas.current_line_spacing(),
+            lo,
+            hi,
+            5,
         )
         if ok:
             self.canvas.apply_line_spacing(value)
@@ -1522,10 +1724,14 @@ class MainWindow(QMainWindow):
     def choose_word_spacing(self):
         lo, hi = PageCanvas.WORD_SPACING_RANGE
         value, ok = QInputDialog.getInt(
-            self, "Word Spacing",
+            self,
+            "Word Spacing",
             "Extra space between words, in pixels (0 = normal, negative = tighter).\n"
             "Letters inside each word aren't affected:",
-            int(round(self.canvas.current_word_spacing())), lo, hi, 1,
+            int(round(self.canvas.current_word_spacing())),
+            lo,
+            hi,
+            1,
         )
         if ok:
             self.canvas.set_word_spacing(value)
@@ -1557,7 +1763,8 @@ class MainWindow(QMainWindow):
         self._format_painter_active = True
         self.canvas.viewport().setCursor(Qt.CursorShape.CrossCursor)
         self.statusBar().showMessage(
-            "Format Painter: select text to apply the copied formatting to it.")
+            "Format Painter: select text to apply the copied formatting to it."
+        )
 
     def _on_selection_changed_for_format_painter(self):
         if not self._format_painter_active:
@@ -1580,18 +1787,22 @@ class MainWindow(QMainWindow):
 
     def insert_date(self):
         from datetime import date
+
         self.canvas.textCursor().insertText(date.today().strftime("%B %d, %Y"))
 
     def show_about(self):
         from dialogs import AboutDialog
+
         AboutDialog(APP_VERSION, self).exec()
 
     def open_roman_urdu_guide(self):
         from dialogs import RomanUrduGuideDialog
+
         RomanUrduGuideDialog(self).exec()
 
     def open_preferences(self):
         from dialogs import PreferencesDialog
+
         settings = QSettings(font_settings.ORG, font_settings.APP)
         # Fallbacks match this app's real built-in start (see
         # MainWindow.__init__), not arbitrary numbers: now that saved
@@ -1599,11 +1810,15 @@ class MainWindow(QMainWindow):
         # install and just pressing OK must not quietly change the page
         # size to something the person never picked.
         old = {
-            "default_family": settings.value("prefs/defaultFamily", self.canvas.pending_family(), type=str),
+            "default_family": settings.value(
+                "prefs/defaultFamily", self.canvas.pending_family(), type=str
+            ),
             "default_size": settings.value("prefs/defaultSize", 36, type=int),
             "default_width": settings.value("prefs/defaultWidth", 794, type=int),
             "default_height": settings.value("prefs/defaultHeight", 1123, type=int),
-            "autosave_interval_sec": settings.value("prefs/autosaveIntervalSec", 60, type=int),
+            "autosave_interval_sec": settings.value(
+                "prefs/autosaveIntervalSec", 60, type=int
+            ),
         }
         dlg = PreferencesDialog(parent=self, **old)
         if dlg.exec():
@@ -1630,7 +1845,10 @@ class MainWindow(QMainWindow):
                 if v["default_size"] != old["default_size"]:
                     self.size_spin.setValue(v["default_size"])
                     applied.append("size")
-                if (v["default_width"], v["default_height"]) != (old["default_width"], old["default_height"]):
+                if (v["default_width"], v["default_height"]) != (
+                    old["default_width"],
+                    old["default_height"],
+                ):
                     self.canvas.resize_page(v["default_width"], v["default_height"])
                     self._sync_scene_rect()
                     self._update_status()
@@ -1638,14 +1856,19 @@ class MainWindow(QMainWindow):
             if applied:
                 self.statusBar().showMessage(
                     f"Preferences saved — default {', '.join(applied)} applied to this blank "
-                    "page, and to every new session.", 5000)
+                    "page, and to every new session.",
+                    5000,
+                )
             else:
                 self.statusBar().showMessage(
                     "Preferences saved — defaults apply from the next launch (or a blank page); "
-                    "the autosave interval applies now.", 5000)
+                    "the autosave interval applies now.",
+                    5000,
+                )
 
     def show_document_statistics(self):
         from dialogs import DocumentStatisticsDialog
+
         text = self.canvas.toPlainText()
         words = self.canvas.word_count()
         characters = self.canvas.character_count()
@@ -1659,9 +1882,12 @@ class MainWindow(QMainWindow):
         minutes = max(1, round(words / 200)) if words else 0
         reading_time = f"~{minutes} min" if minutes else "< 1 min"
         stats = {
-            "words": words, "characters": characters,
+            "words": words,
+            "characters": characters,
             "characters_no_spaces": characters_no_spaces,
-            "lines": lines, "paragraphs": paragraphs, "reading_time": reading_time,
+            "lines": lines,
+            "paragraphs": paragraphs,
+            "reading_time": reading_time,
         }
         DocumentStatisticsDialog(stats, self).exec()
 
@@ -1703,7 +1929,10 @@ class MainWindow(QMainWindow):
     def _on_find_previous(self, text, match_case, whole_word):
         if not text:
             return
-        flags = self._find_flags(match_case, whole_word) | QTextDocument.FindFlag.FindBackward
+        flags = (
+            self._find_flags(match_case, whole_word)
+            | QTextDocument.FindFlag.FindBackward
+        )
         found = self.canvas.find(text, flags)
         if not found:
             cursor = self.canvas.textCursor()
@@ -1735,7 +1964,9 @@ class MainWindow(QMainWindow):
                 count += 1
         finally:
             outer_cursor.endEditBlock()
-        self._find_dialog.set_status(f"Replaced {count} occurrence{'s' if count != 1 else ''}.")
+        self._find_dialog.set_status(
+            f"Replaced {count} occurrence{'s' if count != 1 else ''}."
+        )
 
     def print_page(self):
         printer = QPrinter(QPrinter.PrinterMode.HighResolution)
@@ -1753,17 +1984,25 @@ class MainWindow(QMainWindow):
             # rather than printing at a fixed DPI that might be tiny or
             # run off the edge of the paper.
             target = painter.viewport()
-            scale = min(target.width() / self.canvas.page_width,
-                        target.height() / self.canvas.page_height)
+            scale = min(
+                target.width() / self.canvas.page_width,
+                target.height() / self.canvas.page_height,
+            )
             x_offset = (target.width() - self.canvas.page_width * scale) / 2
             y_offset = (target.height() - self.canvas.page_height * scale) / 2
             painter.translate(x_offset, y_offset)
             exporter.paint_page_for_printer(
-                painter, self.canvas.document(), self.canvas.page_width, self.canvas.page_height,
-                self.canvas.background_color(), background_image=self.canvas.background_image(),
+                painter,
+                self.canvas.document(),
+                self.canvas.page_width,
+                self.canvas.page_height,
+                self.canvas.background_color(),
+                background_image=self.canvas.background_image(),
                 background_image_mode=self.canvas.background_image_mode(),
-                border_width=self.canvas.border_width(), border_color=self.canvas.border_color(),
-                border_style=self.canvas.border_style(), scale=scale,
+                border_width=self.canvas.border_width(),
+                border_color=self.canvas.border_color(),
+                border_style=self.canvas.border_style(),
+                scale=scale,
             )
         finally:
             self.unsetCursor()
@@ -1774,9 +2013,12 @@ class MainWindow(QMainWindow):
         if not self.canvas.document().isModified():
             return True
         resp = QMessageBox.question(
-            self, "Unsaved changes",
+            self,
+            "Unsaved changes",
             "This page has unsaved changes. Save before continuing?",
-            QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Save
+            | QMessageBox.StandardButton.Discard
+            | QMessageBox.StandardButton.Cancel,
         )
         if resp == QMessageBox.StandardButton.Save:
             self.save_project()
@@ -1789,8 +2031,10 @@ class MainWindow(QMainWindow):
         if event.mimeData().hasUrls():
             for url in event.mimeData().urls():
                 path = url.toLocalFile()
-                if path and (path.lower().endswith(".utw") or
-                             path.lower().endswith(self._DROPPABLE_IMAGE_SUFFIXES)):
+                if path and (
+                    path.lower().endswith(".utw")
+                    or path.lower().endswith(self._DROPPABLE_IMAGE_SUFFIXES)
+                ):
                     event.acceptProposedAction()
                     return
         event.ignore()
@@ -1812,11 +2056,19 @@ class MainWindow(QMainWindow):
         if path.lower().endswith(self._DROPPABLE_IMAGE_SUFFIXES):
             img = QImage(path)
             if img.isNull():
-                QMessageBox.warning(self, "Background Image", f"Couldn't read this image file:\n\n{path}")
+                QMessageBox.warning(
+                    self,
+                    "Background Image",
+                    f"Couldn't read this image file:\n\n{path}",
+                )
                 event.ignore()
                 return
-            self.canvas.set_background_image(_downscale_if_needed(img), self.canvas.background_image_mode())
-            self.statusBar().showMessage(f"Set {Path(path).name} as the page background.", 4000)
+            self.canvas.set_background_image(
+                _downscale_if_needed(img), self.canvas.background_image_mode()
+            )
+            self.statusBar().showMessage(
+                f"Set {Path(path).name} as the page background.", 4000
+            )
             event.acceptProposedAction()
             return
         event.ignore()
@@ -1836,7 +2088,11 @@ class MainWindow(QMainWindow):
         # call), so rather than risk Qt's fatal "thread destroyed while
         # still running" crash on exit, give them a moment to notice we're
         # closing and terminate them if they don't.
-        for thread in (self._model_load_thread, self._transcribe_thread, self._export_thread):
+        for thread in (
+            self._model_load_thread,
+            self._transcribe_thread,
+            self._export_thread,
+        ):
             if thread is not None and thread.isRunning():
                 thread.terminate()
                 thread.wait(2000)
@@ -1867,12 +2123,20 @@ class MainWindow(QMainWindow):
         last_dir = settings.value("export/lastDirectory", "", type=str)
         if export_all:
             path, _ = QFileDialog.getSaveFileName(
-                self, "Export All Formats — choose a base name", f"{last_dir}/untitled.png" if last_dir else "untitled.png",
-                "Any (*)"
+                self,
+                "Export All Formats — choose a base name",
+                f"{last_dir}/untitled.png" if last_dir else "untitled.png",
+                "Any (*)",
             )
         else:
-            default_name = f"{last_dir}/untitled.{fmt.lower()}" if last_dir else f"untitled.{fmt.lower()}"
-            path, _ = QFileDialog.getSaveFileName(self, "Export", default_name, f"*.{fmt.lower()}")
+            default_name = (
+                f"{last_dir}/untitled.{fmt.lower()}"
+                if last_dir
+                else f"untitled.{fmt.lower()}"
+            )
+            path, _ = QFileDialog.getSaveFileName(
+                self, "Export", default_name, f"*.{fmt.lower()}"
+            )
         if not path:
             return
         settings.setValue("export/lastDirectory", str(Path(path).parent))
@@ -1888,7 +2152,11 @@ class MainWindow(QMainWindow):
         page_w, page_h = self.canvas.page_width, self.canvas.page_height
         bg = self.canvas.background_color() if v["include_background"] else None
         bg_image = self.canvas.background_image()
-        bg_image_copy = bg_image.copy() if (v["include_background"] and bg_image is not None) else None
+        bg_image_copy = (
+            bg_image.copy()
+            if (v["include_background"] and bg_image is not None)
+            else None
+        )
         bg_image_mode = self.canvas.background_image_mode()
         border_width = self.canvas.border_width() if v["include_background"] else 0
         border_color = self.canvas.border_color()
@@ -1898,34 +2166,74 @@ class MainWindow(QMainWindow):
         def do_export():
             if export_all:
                 self._last_export_paths = exporter.export_all_formats(
-                    doc_copy, page_w, page_h, v["width"], v["height"], bg, path,
-                    background_image=bg_image_copy, background_image_mode=bg_image_mode,
-                    border_width=border_width, border_color=border_color, border_style=border_style,
+                    doc_copy,
+                    page_w,
+                    page_h,
+                    v["width"],
+                    v["height"],
+                    bg,
+                    path,
+                    background_image=bg_image_copy,
+                    background_image_mode=bg_image_mode,
+                    border_width=border_width,
+                    border_color=border_color,
+                    border_style=border_style,
                 )
                 return
             if fmt in ("PNG", "JPG"):
                 exporter.export_raster(
-                    doc_copy, page_w, page_h, v["width"], v["height"], bg, path, fmt,
-                    background_image=bg_image_copy, background_image_mode=bg_image_mode,
-                    border_width=border_width, border_color=border_color, border_style=border_style,
+                    doc_copy,
+                    page_w,
+                    page_h,
+                    v["width"],
+                    v["height"],
+                    bg,
+                    path,
+                    fmt,
+                    background_image=bg_image_copy,
+                    background_image_mode=bg_image_mode,
+                    border_width=border_width,
+                    border_color=border_color,
+                    border_style=border_style,
                 )
             elif fmt == "SVG":
                 exporter.export_svg(
-                    doc_copy, page_w, page_h, bg, path,
-                    background_image=bg_image_copy, background_image_mode=bg_image_mode,
-                    border_width=border_width, border_color=border_color, border_style=border_style,
+                    doc_copy,
+                    page_w,
+                    page_h,
+                    bg,
+                    path,
+                    background_image=bg_image_copy,
+                    background_image_mode=bg_image_mode,
+                    border_width=border_width,
+                    border_color=border_color,
+                    border_style=border_style,
                 )
             elif fmt == "PDF":
                 exporter.export_pdf(
-                    doc_copy, page_w, page_h, bg, path,
-                    background_image=bg_image_copy, background_image_mode=bg_image_mode,
-                    border_width=border_width, border_color=border_color, border_style=border_style,
+                    doc_copy,
+                    page_w,
+                    page_h,
+                    bg,
+                    path,
+                    background_image=bg_image_copy,
+                    background_image_mode=bg_image_mode,
+                    border_width=border_width,
+                    border_color=border_color,
+                    border_style=border_style,
                 )
             elif fmt == "EPS":
                 exporter.export_eps(
-                    doc_copy, page_w, page_h, bg, path,
-                    background_image=bg_image_copy, background_image_mode=bg_image_mode,
-                    border_width=border_width, border_color=border_color, border_style=border_style,
+                    doc_copy,
+                    page_w,
+                    page_h,
+                    bg,
+                    path,
+                    background_image=bg_image_copy,
+                    background_image_mode=bg_image_mode,
+                    border_width=border_width,
+                    border_color=border_color,
+                    border_style=border_style,
                 )
             self._last_export_paths = [path]
 
@@ -1935,7 +2243,9 @@ class MainWindow(QMainWindow):
         self.export_menu_action.setEnabled(False)
         self.export_toolbar_action.setEnabled(False)
         self.setCursor(Qt.CursorShape.WaitCursor)
-        self.statusBar().showMessage(f"Exporting to {path}…" if not export_all else "Exporting all formats…")
+        self.statusBar().showMessage(
+            f"Exporting to {path}…" if not export_all else "Exporting all formats…"
+        )
         self._export_thread.start()
 
     def _on_export_succeeded(self, path):
@@ -1947,16 +2257,21 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"Exported {n} files next to {path}", 6000)
         else:
             self.statusBar().showMessage(f"Exported to {path}", 5000)
-        self._offer_reveal_in_folder(self._last_export_paths[0] if self._last_export_paths else path)
+        self._offer_reveal_in_folder(
+            self._last_export_paths[0] if self._last_export_paths else path
+        )
 
     def _offer_reveal_in_folder(self, path):
         from PyQt6.QtGui import QDesktopServices
         from PyQt6.QtCore import QUrl
+
         folder = str(Path(path).parent)
         box = QMessageBox(self)
         box.setWindowTitle("Export Complete")
         box.setText(f"Exported successfully.\n\nOpen the containing folder?")
-        box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        box.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
         box.setDefaultButton(QMessageBox.StandardButton.No)
         if box.exec() == QMessageBox.StandardButton.Yes:
             QDesktopServices.openUrl(QUrl.fromLocalFile(folder))
@@ -1974,11 +2289,14 @@ class MainWindow(QMainWindow):
         # export_svg()'s outline extraction, so it's not slow enough to
         # be worth the extra machinery.
         image = exporter.render_for_clipboard(
-            self.canvas.document(), self.canvas.page_width, self.canvas.page_height,
+            self.canvas.document(),
+            self.canvas.page_width,
+            self.canvas.page_height,
             self.canvas.background_color(),
             background_image=self.canvas.background_image(),
             background_image_mode=self.canvas.background_image_mode(),
-            border_width=self.canvas.border_width(), border_color=self.canvas.border_color(),
+            border_width=self.canvas.border_width(),
+            border_color=self.canvas.border_color(),
         )
         QApplication.clipboard().setImage(image)
         self.statusBar().showMessage("Copied page to clipboard as an image", 4000)
@@ -2012,7 +2330,8 @@ class MainWindow(QMainWindow):
             what = "page text"
         if not source_text.strip():
             self.statusBar().showMessage(
-                "Nothing to copy — type or select some text first", 4000)
+                "Nothing to copy — type or select some text first", 4000
+            )
             return
 
         # Both renders walk every glyph, so — like file export — they run
@@ -2028,19 +2347,27 @@ class MainWindow(QMainWindow):
 
         def do_export():
             self._svg_clipboard_bytes = exporter.render_svg_curves_bytes(
-                doc_copy, page_w, char_range=char_range,
+                doc_copy,
+                page_w,
+                char_range=char_range,
             )
             self._pdf_clipboard_bytes = exporter.render_pdf_curves_bytes(
-                doc_copy, page_w, char_range=char_range,
+                doc_copy,
+                page_w,
+                char_range=char_range,
             )
 
         def on_succeeded():
             self.copy_svg_menu_act.setEnabled(True)
             self.unsetCursor()
             QApplication.clipboard().setMimeData(
-                exporter.make_curves_mime_data(self._svg_clipboard_bytes, self._pdf_clipboard_bytes))
+                exporter.make_curves_mime_data(
+                    self._svg_clipboard_bytes, self._pdf_clipboard_bytes
+                )
+            )
             self.statusBar().showMessage(
-                f"Copied {what} as SVG curves (vector SVG + PDF on the clipboard)", 5000)
+                f"Copied {what} as SVG curves (vector SVG + PDF on the clipboard)", 5000
+            )
 
         def on_failed(message):
             self.copy_svg_menu_act.setEnabled(True)
@@ -2062,21 +2389,25 @@ def install_exception_hook():
     (or to a terminal window most users will never see) and shows a
     dialog instead. Logs the full traceback to stderr too, for anyone
     running from a terminal who wants the detail."""
+
     def handle_exception(exc_type, exc_value, exc_traceback):
         if issubclass(exc_type, KeyboardInterrupt):
             sys.__excepthook__(exc_type, exc_value, exc_traceback)
             return
         import traceback
+
         traceback.print_exception(exc_type, exc_value, exc_traceback)
         try:
             QMessageBox.critical(
-                None, "Unexpected error",
+                None,
+                "Unexpected error",
                 f"Something went wrong:\n\n{exc_value}\n\n"
                 f"The app will try to keep running — you may want to save your work "
-                f"(File > Save Project) and restart if things seem off afterwards."
+                f"(File > Save Project) and restart if things seem off afterwards.",
             )
         except Exception:
             pass  # if even the error dialog fails, don't let that crash us further
+
     sys.excepthook = handle_exception
 
 
@@ -2090,7 +2421,6 @@ def main():
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
-
 
 
 if __name__ == "__main__":

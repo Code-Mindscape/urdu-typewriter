@@ -105,7 +105,7 @@ os.environ.setdefault("HF_HUB_DOWNLOAD_TIMEOUT", "15")
 MODEL_ID = "Systran/faster-whisper-medium"
 MODEL_DIR = Path(__file__).parent / "whisper_model"
 SAMPLE_RATE = 16000  # what Whisper's models are trained on — recording at
-                      # this rate directly avoids needing to resample later
+# this rate directly avoids needing to resample later
 
 
 class MicrophoneUnavailable(RuntimeError):
@@ -125,7 +125,9 @@ class Recorder:
     def __init__(self, samplerate=SAMPLE_RATE):
         self.samplerate = samplerate
         self._chunks = []
-        self._pulled = 0  # how many of self._chunks pull_new_audio() has already returned
+        self._pulled = (
+            0  # how many of self._chunks pull_new_audio() has already returned
+        )
         self._stream = None
 
     def start(self):
@@ -141,7 +143,9 @@ class Recorder:
         self._pulled = 0
         try:
             self._stream = sd.InputStream(
-                samplerate=self.samplerate, channels=1, dtype="float32",
+                samplerate=self.samplerate,
+                channels=1,
+                dtype="float32",
                 callback=self._callback,
             )
             self._stream.start()
@@ -168,7 +172,7 @@ class Recorder:
         audio callback can append to self._chunks concurrently, on its
         own thread, in between."""
         total = len(self._chunks)
-        new_chunks = self._chunks[self._pulled:total]
+        new_chunks = self._chunks[self._pulled : total]
         self._pulled = total
         if not new_chunks:
             return np.zeros((0,), dtype=np.float32)
@@ -231,32 +235,40 @@ class UtteranceSegmenter:
     (meter moves, chunks still don't trigger) if voice input seems dead.
     """
 
-    SILENCE_RMS = 0.004           # short windows averaging at/below this = "silence" --
-                                   # see the class docstring for why this leans sensitive
-    WINDOW_MS = 30                # analysis window size
-    SILENCE_HOLD_MS = 900         # this much continuous trailing silence, PLUS at least
-                                   # TARGET_CHUNK_SECONDS already buffered -> cut now
-    EXTENDED_SILENCE_HOLD_MS = 2500  # this much trailing silence cuts regardless of size --
-                                   # long enough that the person has clearly stopped, not
-                                   # just paused for breath mid-thought
-    TARGET_CHUNK_SECONDS = 5      # don't cut on an ordinary pause until roughly this much
-                                   # audio has accumulated -- see class docstring for why
-                                   # small-and-frequent is actually the slower choice here
-    MIN_SPEECH_MS = 250           # ignore a buffer with less real speech than this (mic noise, breath)
-    MAX_CHUNK_SECONDS = 14        # force a cut even mid-sentence past this long, so one long
-                                   # run-on sentence can't block live feedback indefinitely
+    SILENCE_RMS = 0.004  # short windows averaging at/below this = "silence" --
+    # see the class docstring for why this leans sensitive
+    WINDOW_MS = 30  # analysis window size
+    SILENCE_HOLD_MS = 900  # this much continuous trailing silence, PLUS at least
+    # TARGET_CHUNK_SECONDS already buffered -> cut now
+    EXTENDED_SILENCE_HOLD_MS = (
+        2500  # this much trailing silence cuts regardless of size --
+    )
+    # long enough that the person has clearly stopped, not
+    # just paused for breath mid-thought
+    TARGET_CHUNK_SECONDS = 5  # don't cut on an ordinary pause until roughly this much
+    # audio has accumulated -- see class docstring for why
+    # small-and-frequent is actually the slower choice here
+    MIN_SPEECH_MS = (
+        250  # ignore a buffer with less real speech than this (mic noise, breath)
+    )
+    MAX_CHUNK_SECONDS = 14  # force a cut even mid-sentence past this long, so one long
+    # run-on sentence can't block live feedback indefinitely
 
     def __init__(self, samplerate=SAMPLE_RATE):
         self.samplerate = samplerate
         self._window_size = max(1, int(samplerate * self.WINDOW_MS / 1000))
-        self._unprocessed = np.zeros((0,), dtype=np.float32)  # < 1 window, awaiting more samples
-        self._pending_windows = []       # committed windows for the current in-progress utterance
+        self._unprocessed = np.zeros(
+            (0,), dtype=np.float32
+        )  # < 1 window, awaiting more samples
+        self._pending_windows = (
+            []
+        )  # committed windows for the current in-progress utterance
         self._pending_samples = 0
         self._trailing_silence_ms = 0.0
         self._speech_ms_in_pending = 0.0
-        self.last_rms = 0.0              # most recent window's level — read this for a live meter
-        self.ever_heard_speech = False   # True once any window has crossed SILENCE_RMS —
-                                          # lets main.py warn if a whole recording goes by without it
+        self.last_rms = 0.0  # most recent window's level — read this for a live meter
+        self.ever_heard_speech = False  # True once any window has crossed SILENCE_RMS —
+        # lets main.py warn if a whole recording goes by without it
 
     def feed(self, new_audio: np.ndarray):
         """Add newly captured audio (e.g. from Recorder.pull_new_audio()).
@@ -292,8 +304,10 @@ class UtteranceSegmenter:
                     ready.append(self._cut_and_reset())
                 else:
                     self._reset()
-            elif (self._trailing_silence_ms >= self.SILENCE_HOLD_MS
-                    and pending_seconds >= self.TARGET_CHUNK_SECONDS):
+            elif (
+                self._trailing_silence_ms >= self.SILENCE_HOLD_MS
+                and pending_seconds >= self.TARGET_CHUNK_SECONDS
+            ):
                 # The common case: a natural pause, and enough buffered
                 # that transcribing it now is worth the (mostly fixed)
                 # per-call cost.
@@ -330,11 +344,11 @@ class UtteranceSegmenter:
 
 _model_cache = {}
 _model_cache_lock = threading.Lock()  # see get_model() — keeps ModelLoadThread's
-                                        # startup preload and an eager first
-                                        # TranscribeThread (if recording starts
-                                        # before preload finishes) from both
-                                        # building their own separate copy of
-                                        # the model at once
+# startup preload and an eager first
+# TranscribeThread (if recording starts
+# before preload finishes) from both
+# building their own separate copy of
+# the model at once
 
 
 # The files faster-whisper actually needs to load a local model, and the
@@ -357,10 +371,10 @@ _model_cache_lock = threading.Lock()  # see get_model() — keeps ModelLoadThrea
 # variation between model sizes can't false-positive a genuinely complete
 # download the way one shared number already did once.
 _MIN_FILE_BYTES = {
-    "config.json": 500,           # real size ~2.26 KB
-    "vocabulary.txt": 50_000,     # real size ~460 KB
-    "tokenizer.json": 200_000,    # real size ~2.2 MB
-    "model.bin": 10_000_000,      # real size ~140MB (base) to ~1.53GB (medium)
+    "config.json": 500,  # real size ~2.26 KB
+    "vocabulary.txt": 50_000,  # real size ~460 KB
+    "tokenizer.json": 200_000,  # real size ~2.2 MB
+    "model.bin": 10_000_000,  # real size ~140MB (base) to ~1.53GB (medium)
 }
 _REQUIRED_MODEL_FILES = tuple(_MIN_FILE_BYTES)
 
@@ -379,7 +393,9 @@ def _local_model_incomplete() -> bool:
     missing (or too small to be real) required files" — worth a distinct,
     clearer error message than either "no local copy" or a raw
     ctranslate2 load failure."""
-    return MODEL_DIR.exists() and any(MODEL_DIR.iterdir()) and not local_model_available()
+    return (
+        MODEL_DIR.exists() and any(MODEL_DIR.iterdir()) and not local_model_available()
+    )
 
 
 def _bad_model_files():
@@ -412,7 +428,6 @@ def get_model(model_id=MODEL_ID):
             f"Delete that folder and run 'python download_model.py' again."
         )
 
-
     key = str(MODEL_DIR) if local_model_available() else model_id
     # Held across the cache check *and* the (slow) construction below, not
     # just around the dict write -- otherwise two threads can each see
@@ -443,13 +458,16 @@ def get_model(model_id=MODEL_ID):
                 # always use every available core — pointing it at the actual
                 # core count directly measurably speeds up CPU inference.
                 _model_cache[key] = WhisperModel(
-                    key, device="cpu", compute_type="float16",
+                    key,
+                    device="cpu",
+                    compute_type="float16",
                     cpu_threads=os.cpu_count() or 4,
                 )
             except Exception as e:
                 hint = (
-                    "" if local_model_available() else
-                    "\n\nTip: run 'python download_model.py' once to download it permanently "
+                    ""
+                    if local_model_available()
+                    else "\n\nTip: run 'python download_model.py' once to download it permanently "
                     "instead of on every first use."
                 )
                 raise MicrophoneUnavailable(
@@ -460,45 +478,49 @@ def get_model(model_id=MODEL_ID):
     return _model_cache[key]
 
 
-def transcribe_urdu(audio: np.ndarray, model_id=MODEL_ID, samplerate=SAMPLE_RATE) -> str:
+def transcribe_urdu(
+    audio: np.ndarray, model_id=MODEL_ID, samplerate=SAMPLE_RATE
+) -> str:
     """audio: flat float32 mono array (as returned by Recorder.stop()).
     Returns the transcribed Urdu text, or "" if no speech was recognized."""
     if audio is None or audio.size == 0:
         return ""
     model = get_model(model_id)
     segments, _info = model.transcribe(
-        audio, language="ur", task="transcribe",
-        beam_size=3,       # explores a few candidate decodings instead of
-                           # just taking the greedy best guess at each step —
-                           # a real, well-established accuracy improvement
-                           # over beam_size=1. Trimmed from 5: most of beam
-                           # search's benefit over greedy shows up going to
-                           # ~3, and decoder cost (unlike the encoder — the
-                           # fixed-cost part discussed in UtteranceSegmenter's
-                           # docstring) scales with this *and* now only runs
-                           # once per chunk instead of up to 6 times (see
-                           # temperature below), so it's worth being a bit
-                           # more careful with here than before that fix.
-        temperature=0.0,   # single deterministic decode, no fallback
-                           # retries — see the module docstring's "A separate
-                           # cost..." paragraph for why this is almost
-                           # certainly the main fix for the ~45-50s-per-chunk
-                           # slowness. Trade-off: a genuinely garbled/
-                           # ambiguous segment no longer gets a second,
-                           # more-random attempt at a better reading. Rare
-                           # for a person deliberately dictating close to the
-                           # mic, and vad_filter below already keeps silence/
-                           # noise from being sent in as a "segment" at all.
+        audio,
+        language="ur",
+        task="transcribe",
+        beam_size=3,  # explores a few candidate decodings instead of
+        # just taking the greedy best guess at each step —
+        # a real, well-established accuracy improvement
+        # over beam_size=1. Trimmed from 5: most of beam
+        # search's benefit over greedy shows up going to
+        # ~3, and decoder cost (unlike the encoder — the
+        # fixed-cost part discussed in UtteranceSegmenter's
+        # docstring) scales with this *and* now only runs
+        # once per chunk instead of up to 6 times (see
+        # temperature below), so it's worth being a bit
+        # more careful with here than before that fix.
+        temperature=0.0,  # single deterministic decode, no fallback
+        # retries — see the module docstring's "A separate
+        # cost..." paragraph for why this is almost
+        # certainly the main fix for the ~45-50s-per-chunk
+        # slowness. Trade-off: a genuinely garbled/
+        # ambiguous segment no longer gets a second,
+        # more-random attempt at a better reading. Rare
+        # for a person deliberately dictating close to the
+        # mic, and vad_filter below already keeps silence/
+        # noise from being sent in as a "segment" at all.
         condition_on_previous_text=False,  # each internally-detected segment
-                           # is decoded independently rather than
-                           # conditioned on what came right before it in
-                           # the same chunk. The default (True) lets one
-                           # early mistake or hallucination drag down
-                           # everything decoded after it within that
-                           # chunk — a bigger risk now that chunks
-                           # regularly hold several seconds of speech
-                           # (see UtteranceSegmenter) rather than one
-                           # short phrase.
+        # is decoded independently rather than
+        # conditioned on what came right before it in
+        # the same chunk. The default (True) lets one
+        # early mistake or hallucination drag down
+        # everything decoded after it within that
+        # chunk — a bigger risk now that chunks
+        # regularly hold several seconds of speech
+        # (see UtteranceSegmenter) rather than one
+        # short phrase.
         vad_filter=True,  # trims leading/trailing silence, reduces hallucinated text on quiet clips
     )
     return "".join(seg.text for seg in segments).strip()

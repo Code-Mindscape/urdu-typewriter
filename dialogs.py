@@ -1,11 +1,42 @@
 from PyQt6.QtWidgets import (
-    QDialog, QFormLayout, QSpinBox, QDoubleSpinBox, QPushButton, QColorDialog, QHBoxLayout,
-    QVBoxLayout, QLabel, QComboBox, QCheckBox, QDialogButtonBox, QWidget,
-    QRadioButton, QButtonGroup, QListWidget, QListWidgetItem, QLineEdit,
-    QGridLayout, QFileDialog, QMessageBox, QTableWidget, QTableWidgetItem,
-    QHeaderView, QAbstractItemView, QFrame
+    QDialog,
+    QFormLayout,
+    QSpinBox,
+    QDoubleSpinBox,
+    QPushButton,
+    QColorDialog,
+    QHBoxLayout,
+    QVBoxLayout,
+    QLabel,
+    QComboBox,
+    QCheckBox,
+    QDialogButtonBox,
+    QWidget,
+    QRadioButton,
+    QButtonGroup,
+    QListWidget,
+    QListWidgetItem,
+    QLineEdit,
+    QGridLayout,
+    QFileDialog,
+    QMessageBox,
+    QTableWidget,
+    QTableWidgetItem,
+    QHeaderView,
+    QAbstractItemView,
+    QFrame,
 )
-from PyQt6.QtGui import QColor, QFont, QFontDatabase, QPainter, QLinearGradient, QPen, QBrush, QImage, QIcon
+from PyQt6.QtGui import (
+    QColor,
+    QFont,
+    QFontDatabase,
+    QPainter,
+    QLinearGradient,
+    QPen,
+    QBrush,
+    QImage,
+    QIcon,
+)
 from PyQt6.QtCore import pyqtSignal, Qt, QPoint, QSize, QEvent
 from pathlib import Path
 
@@ -26,13 +57,21 @@ def _downscale_if_needed(image: QImage) -> QImage:
     if longest <= MAX_BACKGROUND_IMAGE_DIMENSION:
         return image
     scale = MAX_BACKGROUND_IMAGE_DIMENSION / longest
-    new_size = (max(1, round(image.width() * scale)), max(1, round(image.height() * scale)))
-    return image.scaled(new_size[0], new_size[1], Qt.AspectRatioMode.KeepAspectRatio,
-                         Qt.TransformationMode.SmoothTransformation)
+    new_size = (
+        max(1, round(image.width() * scale)),
+        max(1, round(image.height() * scale)),
+    )
+    return image.scaled(
+        new_size[0],
+        new_size[1],
+        Qt.AspectRatioMode.KeepAspectRatio,
+        Qt.TransformationMode.SmoothTransformation,
+    )
 
 
 class _SVSquare(QWidget):
     """Saturation/Value picking area for a given hue."""
+
     changed = pyqtSignal(float, float)
 
     def __init__(self, parent=None):
@@ -89,6 +128,7 @@ class _SVSquare(QWidget):
 
 class _HueStrip(QWidget):
     """Vertical hue slider, 0.0-1.0."""
+
     changed = pyqtSignal(float)
 
     def __init__(self, parent=None):
@@ -129,9 +169,22 @@ class _HueStrip(QWidget):
 
 
 _PRESET_COLORS = [
-    "#EDEBE6", "#FFFFFF", "#C9A15C", "#E8B84B", "#C0392B", "#E67E22",
-    "#F1C40F", "#27AE60", "#16A085", "#2980B9", "#8E44AD", "#2C3E50",
-    "#000000", "#5B5954", "#96938C", "#0B3D2E",
+    "#EDEBE6",
+    "#FFFFFF",
+    "#C9A15C",
+    "#E8B84B",
+    "#C0392B",
+    "#E67E22",
+    "#F1C40F",
+    "#27AE60",
+    "#16A085",
+    "#2980B9",
+    "#8E44AD",
+    "#2C3E50",
+    "#000000",
+    "#5B5954",
+    "#96938C",
+    "#0B3D2E",
 ]
 
 
@@ -195,7 +248,9 @@ class ColorPickerDialog(QDialog):
                 f"border-radius: 4px; }}"
                 f"QPushButton:hover {{ border: 2px solid {theme.ACCENT}; }}"
             )
-            btn.clicked.connect(lambda _checked, c=hex_color: self._set_color(QColor(c)))
+            btn.clicked.connect(
+                lambda _checked, c=hex_color: self._set_color(QColor(c))
+            )
             preset_grid.addWidget(btn, i // 8, i % 8)
 
         buttons = QDialogButtonBox(
@@ -282,6 +337,7 @@ class ColorPickerDialog(QDialog):
 
 class ColorSwatchButton(QPushButton):
     """A small clickable swatch that opens a color picker on click."""
+
     colorChanged = pyqtSignal(QColor)
 
     def __init__(self, initial: QColor, parent=None):
@@ -344,23 +400,43 @@ def unit_to_px(value, unit):
 class NewPageDialog(QDialog):
     """Also reused as "Page Setup" for an existing page."""
 
-    IMAGE_MODES = [("Fit (whole image visible)", "fit"), ("Fill (crop to cover)", "fill"),
-                   ("Center (no scaling)", "center"), ("Tile (repeat)", "tile")]
-    BORDER_STYLES = [("Solid", Qt.PenStyle.SolidLine), ("Dashed", Qt.PenStyle.DashLine),
-                      ("Dotted", Qt.PenStyle.DotLine), ("Dash-Dot", Qt.PenStyle.DashDotLine)]
+    IMAGE_MODES = [
+        ("Fit (whole image visible)", "fit"),
+        ("Fill (crop to cover)", "fill"),
+        ("Center (no scaling)", "center"),
+        ("Tile (repeat)", "tile"),
+    ]
+    BORDER_STYLES = [
+        ("Solid", Qt.PenStyle.SolidLine),
+        ("Dashed", Qt.PenStyle.DashLine),
+        ("Dotted", Qt.PenStyle.DotLine),
+        ("Dash-Dot", Qt.PenStyle.DashDotLine),
+    ]
     VERTICAL_ALIGNS = [("Top", "top"), ("Middle", "middle"), ("Bottom", "bottom")]
 
-    def __init__(self, width_px=1080, height_px=1080, background=None,
-                 margin_px=40, background_image=None, background_image_mode="fit",
-                 border_width=0, border_color=None, border_style=Qt.PenStyle.SolidLine,
-                 vertical_align="top", parent=None):
+    def __init__(
+        self,
+        width_px=1080,
+        height_px=1080,
+        background=None,
+        margin_px=40,
+        background_image=None,
+        background_image_mode="fit",
+        border_width=0,
+        border_color=None,
+        border_style=Qt.PenStyle.SolidLine,
+        vertical_align="top",
+        parent=None,
+    ):
         super().__init__(parent)
         self.setWindowTitle("Page Setup")
         self._unit = "px"
         self._width_px = width_px
         self._height_px = height_px
         self._image = background_image
-        self._image_label_text = "Custom image set" if background_image is not None else None
+        self._image_label_text = (
+            "Custom image set" if background_image is not None else None
+        )
 
         self.preset_box = QComboBox()
         for label, _, _ in PRESETS:
@@ -392,7 +468,9 @@ class NewPageDialog(QDialog):
         self.margin_spin.setValue(int(round(margin_px)))
         self.margin_spin.setSuffix(" px")
 
-        self.bg_button = ColorSwatchButton(QColor(background) if background else QColor("white"))
+        self.bg_button = ColorSwatchButton(
+            QColor(background) if background else QColor("white")
+        )
 
         self.image_path_label = QLabel()
         self.image_path_label.setStyleSheet(f"color: {theme.TEXT_MUTED};")
@@ -420,7 +498,9 @@ class NewPageDialog(QDialog):
         self.border_width_spin.setRange(1, 200)
         self.border_width_spin.setValue(border_width if border_width > 0 else 6)
         self.border_width_spin.setSuffix(" px")
-        self.border_color_button = ColorSwatchButton(QColor(border_color) if border_color else QColor(theme.ACCENT))
+        self.border_color_button = ColorSwatchButton(
+            QColor(border_color) if border_color else QColor(theme.ACCENT)
+        )
         self.border_style_combo = QComboBox()
         for label, _style in self.BORDER_STYLES:
             self.border_style_combo.addItem(label)
@@ -478,14 +558,18 @@ class NewPageDialog(QDialog):
 
     def _choose_image(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Choose Background Image", "",
-            "Images (*.png *.jpg *.jpeg *.bmp *.webp *.gif)"
+            self,
+            "Choose Background Image",
+            "",
+            "Images (*.png *.jpg *.jpeg *.bmp *.webp *.gif)",
         )
         if not path:
             return
         img = QImage(path)
         if img.isNull():
-            QMessageBox.warning(self, "Background Image", f"Couldn't read this image file:\n\n{path}")
+            QMessageBox.warning(
+                self, "Background Image", f"Couldn't read this image file:\n\n{path}"
+            )
             return
         self._image = _downscale_if_needed(img)
         self._image_label_text = path.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
@@ -503,7 +587,10 @@ class NewPageDialog(QDialog):
 
     def _refresh_spin_display(self):
         decimals = 0 if self._unit == "px" else 2
-        for spin, px_value in ((self.width_spin, self._width_px), (self.height_spin, self._height_px)):
+        for spin, px_value in (
+            (self.width_spin, self._width_px),
+            (self.height_spin, self._height_px),
+        ):
             spin.blockSignals(True)
             spin.setDecimals(decimals)
             spin.setSuffix(f" {self._unit}")
@@ -535,11 +622,21 @@ class NewPageDialog(QDialog):
             "margin": self.margin_spin.value(),
             "background": self.bg_button.color(),
             "background_image": self._image,
-            "background_image_mode": self.IMAGE_MODES[self.image_mode_combo.currentIndex()][1],
-            "border_width": self.border_width_spin.value() if self.border_checkbox.isChecked() else 0,
+            "background_image_mode": self.IMAGE_MODES[
+                self.image_mode_combo.currentIndex()
+            ][1],
+            "border_width": (
+                self.border_width_spin.value()
+                if self.border_checkbox.isChecked()
+                else 0
+            ),
             "border_color": self.border_color_button.color(),
-            "border_style": self.BORDER_STYLES[self.border_style_combo.currentIndex()][1],
-            "vertical_align": self.VERTICAL_ALIGNS[self.vertical_align_combo.currentIndex()][1],
+            "border_style": self.BORDER_STYLES[self.border_style_combo.currentIndex()][
+                1
+            ],
+            "vertical_align": self.VERTICAL_ALIGNS[
+                self.vertical_align_combo.currentIndex()
+            ][1],
         }
 
 
@@ -551,9 +648,11 @@ class FindReplaceDialog(QDialog):
     finding/replacing, the same split of responsibility as every other
     dialog in this file (collect input here, act on it in main.py)."""
 
-    find_next = pyqtSignal(str, bool, bool)       # text, match_case, whole_word
+    find_next = pyqtSignal(str, bool, bool)  # text, match_case, whole_word
     find_previous = pyqtSignal(str, bool, bool)
-    replace_current = pyqtSignal(str, str, bool, bool)  # find, replace, match_case, whole_word
+    replace_current = pyqtSignal(
+        str, str, bool, bool
+    )  # find, replace, match_case, whole_word
     replace_all = pyqtSignal(str, str, bool, bool)
 
     def __init__(self, parent=None):
@@ -581,18 +680,33 @@ class FindReplaceDialog(QDialog):
         form.addRow("", opts_row)
 
         find_prev_btn = QPushButton("Previous")
-        find_prev_btn.clicked.connect(lambda: self.find_previous.emit(
-            self.find_edit.text(), self.match_case.isChecked(), self.whole_word.isChecked()))
+        find_prev_btn.clicked.connect(
+            lambda: self.find_previous.emit(
+                self.find_edit.text(),
+                self.match_case.isChecked(),
+                self.whole_word.isChecked(),
+            )
+        )
         find_next_btn = QPushButton("Next")
         find_next_btn.clicked.connect(self._emit_find_next)
         replace_btn = QPushButton("Replace")
-        replace_btn.clicked.connect(lambda: self.replace_current.emit(
-            self.find_edit.text(), self.replace_edit.text(),
-            self.match_case.isChecked(), self.whole_word.isChecked()))
+        replace_btn.clicked.connect(
+            lambda: self.replace_current.emit(
+                self.find_edit.text(),
+                self.replace_edit.text(),
+                self.match_case.isChecked(),
+                self.whole_word.isChecked(),
+            )
+        )
         replace_all_btn = QPushButton("Replace All")
-        replace_all_btn.clicked.connect(lambda: self.replace_all.emit(
-            self.find_edit.text(), self.replace_edit.text(),
-            self.match_case.isChecked(), self.whole_word.isChecked()))
+        replace_all_btn.clicked.connect(
+            lambda: self.replace_all.emit(
+                self.find_edit.text(),
+                self.replace_edit.text(),
+                self.match_case.isChecked(),
+                self.whole_word.isChecked(),
+            )
+        )
         btn_row = QHBoxLayout()
         btn_row.addWidget(find_prev_btn)
         btn_row.addWidget(find_next_btn)
@@ -610,8 +724,11 @@ class FindReplaceDialog(QDialog):
         layout.addWidget(self.status_label)
 
     def _emit_find_next(self):
-        self.find_next.emit(self.find_edit.text(), self.match_case.isChecked(),
-                             self.whole_word.isChecked())
+        self.find_next.emit(
+            self.find_edit.text(),
+            self.match_case.isChecked(),
+            self.whole_word.isChecked(),
+        )
 
     def set_status(self, text: str):
         self.status_label.setText(text)
@@ -705,8 +822,12 @@ class ExportDialog(QDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         self._export_all_requested = False
-        export_all_btn = buttons.addButton("Export All Formats", QDialogButtonBox.ButtonRole.ActionRole)
-        export_all_btn.setToolTip("Exports PNG, JPG, SVG, PDF, and EPS together, next to each other")
+        export_all_btn = buttons.addButton(
+            "Export All Formats", QDialogButtonBox.ButtonRole.ActionRole
+        )
+        export_all_btn.setToolTip(
+            "Exports PNG, JPG, SVG, PDF, and EPS together, next to each other"
+        )
         export_all_btn.clicked.connect(self._export_all_clicked)
         layout.addWidget(buttons)
 
@@ -739,12 +860,15 @@ class ExportDialog(QDialog):
         if fmt == "JPG":
             self.bg_checkbox.setChecked(True)
             self.bg_checkbox.setEnabled(False)
-            self.bg_note.setText("JPG has no transparency channel, so the background is always included.")
+            self.bg_note.setText(
+                "JPG has no transparency channel, so the background is always included."
+            )
         elif fmt == "EPS":
             self.bg_checkbox.setEnabled(True)
             self.bg_note.setText(
                 "EPS can't store transparency. With the background off, nothing is painted "
-                "behind the text — most programs show that as see-through.")
+                "behind the text — most programs show that as see-through."
+            )
         else:
             self.bg_checkbox.setEnabled(True)
             self.bg_note.setText("")
@@ -861,7 +985,11 @@ class FontManagerDialog(QDialog):
     def _check_arabic_only(self):
         for i in range(self.list_widget.count()):
             item = self.list_widget.item(i)
-            state = Qt.CheckState.Checked if item.text() in self._arabic_families else Qt.CheckState.Unchecked
+            state = (
+                Qt.CheckState.Checked
+                if item.text() in self._arabic_families
+                else Qt.CheckState.Unchecked
+            )
             item.setCheckState(state)
 
     def enabled_families(self):
@@ -923,7 +1051,9 @@ class _FontSearchPopup(QFrame):
             family = combo.itemText(i)
             item = QListWidgetItem(family)
             item.setFont(QFont(family, 12))
-            item.setData(Qt.ItemDataRole.UserRole, i)  # row in the combo to select on pick
+            item.setData(
+                Qt.ItemDataRole.UserRole, i
+            )  # row in the combo to select on pick
             self.list.addItem(item)
         self._select_current_family()
         self._update_status()
@@ -933,8 +1063,14 @@ class _FontSearchPopup(QFrame):
         combo = self._combo
         width = max(combo.width(), self.MIN_WIDTH)
         row_height = max(self.list.sizeHintForRow(0), 24) if self.list.count() else 24
-        wanted = (16 + self.search.sizeHint().height() + 12 + self.status.sizeHint().height()
-                  + min(self.list.count(), self.VISIBLE_ROWS) * row_height + 8)
+        wanted = (
+            16
+            + self.search.sizeHint().height()
+            + 12
+            + self.status.sizeHint().height()
+            + min(self.list.count(), self.VISIBLE_ROWS) * row_height
+            + 8
+        )
         height = min(self.MAX_HEIGHT, wanted)
         self.resize(width, height)
 
@@ -942,14 +1078,18 @@ class _FontSearchPopup(QFrame):
         screen = combo.screen().availableGeometry()
         x = max(screen.left(), min(below.x(), screen.right() - width))
         y = below.y()
-        if y + height > screen.bottom():  # not enough room underneath: open above instead
+        if (
+            y + height > screen.bottom()
+        ):  # not enough room underneath: open above instead
             y = max(screen.top(), combo.mapToGlobal(QPoint(0, 0)).y() - height)
         self.move(x, y)
         self.show()
         self.search.setFocus()
         current = self.list.currentItem()
         if current is not None:
-            self.list.scrollToItem(current, QAbstractItemView.ScrollHint.PositionAtCenter)
+            self.list.scrollToItem(
+                current, QAbstractItemView.ScrollHint.PositionAtCenter
+            )
 
     # --------------------------------------------------------- filtering --
     def _select_current_family(self):
@@ -973,7 +1113,9 @@ class _FontSearchPopup(QFrame):
             self._select_current_family()
             current = self.list.currentItem()
             if current is not None:
-                self.list.scrollToItem(current, QAbstractItemView.ScrollHint.PositionAtCenter)
+                self.list.scrollToItem(
+                    current, QAbstractItemView.ScrollHint.PositionAtCenter
+                )
         elif rows:
             # Highlight the top match, so typing a name and pressing Enter
             # just works.
@@ -1114,9 +1256,15 @@ class PreferencesDialog(QDialog):
     person confirms with OK — this dialog itself is display/collection
     only, the same split of responsibility as every other dialog here."""
 
-    def __init__(self, default_family="Noto Nastaliq Urdu", default_size=36,
-                 default_width=1080, default_height=1080, autosave_interval_sec=60,
-                 parent=None):
+    def __init__(
+        self,
+        default_family="Noto Nastaliq Urdu",
+        default_size=36,
+        default_width=1080,
+        default_height=1080,
+        autosave_interval_sec=60,
+        parent=None,
+    ):
         super().__init__(parent)
         self.setWindowTitle("Preferences")
 
@@ -1205,7 +1353,9 @@ class DocumentStatisticsDialog(QDialog):
         form.setSpacing(10)
         form.addRow("Words", QLabel(str(stats.get("words", 0))))
         form.addRow("Characters (with spaces)", QLabel(str(stats.get("characters", 0))))
-        form.addRow("Characters (no spaces)", QLabel(str(stats.get("characters_no_spaces", 0))))
+        form.addRow(
+            "Characters (no spaces)", QLabel(str(stats.get("characters_no_spaces", 0)))
+        )
         form.addRow("Lines", QLabel(str(stats.get("lines", 0))))
         form.addRow("Paragraphs", QLabel(str(stats.get("paragraphs", 0))))
         form.addRow("Est. reading time", QLabel(stats.get("reading_time", "< 1 min")))
@@ -1230,52 +1380,64 @@ class DocumentStatisticsDialog(QDialog):
 #
 # Each row: (roman spelling, Urdu, short note).
 ROMAN_TO_URDU_COMBINATIONS = (
-    ("a", "ا", "Short a — often silent in the middle of a word (e.g. \"karta\")"),
-    ("aa", "آ / ا", "Long a, as in \"father\" — آ at the start of a word, ا elsewhere"),
-    ("ai", "ای / ے", "As in \"my\" — kaisay, chahiye"),
-    ("au / aw", "او", "As in \"how\" — aurat, mauka"),
-    ("e", "ای / ی / ے", "As in \"bed\"/\"day\" — changes form at start, middle, and end of a word"),
-    ("ee", "ای / ی", "Long e, as in \"feet\" — deen, jeena"),
+    ("a", "ا", 'Short a — often silent in the middle of a word (e.g. "karta")'),
+    ("aa", "آ / ا", 'Long a, as in "father" — آ at the start of a word, ا elsewhere'),
+    ("ai", "ای / ے", 'As in "my" — kaisay, chahiye'),
+    ("au / aw", "او", 'As in "how" — aurat, mauka'),
+    (
+        "e",
+        "ای / ی / ے",
+        'As in "bed"/"day" — changes form at start, middle, and end of a word',
+    ),
+    ("ee", "ای / ی", 'Long e, as in "feet" — deen, jeena'),
     ("i", "ا / ی", "Short i — often silent in the middle, ی at the end of a word"),
-    ("o", "او / و", "As in \"go\" — omeed, sona"),
-    ("oo", "او / و", "Long u, as in \"food\" — same sound as \"u\""),
+    ("o", "او / و", 'As in "go" — omeed, sona'),
+    ("oo", "او / و", 'Long u, as in "food" — same sound as "u"'),
     ("u", "ا / و", "Short u — often silent in the middle, و at the end of a word"),
-    ("b", "ب", "As in \"bat\""),
+    ("b", "ب", 'As in "bat"'),
     ("bh", "بھ", "Aspirated b — bhai, bhool"),
     ("c", "ک / س", "ک before a/o/u, س before e/i/y"),
-    ("ch", "چ", "As in \"church\""),
+    ("ch", "چ", 'As in "church"'),
     ("chh", "چھ", "Aspirated ch — chhota, chhori"),
-    ("d", "د", "As in \"dog\""),
+    ("d", "د", 'As in "dog"'),
     ("dd", "ڈ", "Retroflex d — dda, gaddi"),
     ("ddh", "ڈھ", "Aspirated retroflex d — ddhol"),
     ("dh", "دھ", "Aspirated d — dhoop, dhoka"),
-    ("f", "ف", "As in \"fan\""),
-    ("g", "گ", "As in \"go\""),
-    ("gh", "غ / گھ", "گھ at the very start of a word (ghar, ghanta); غ elsewhere (ghalat, baagh)"),
-    ("h", "ہ", "As in \"hat\""),
-    ("j", "ج", "As in \"jam\""),
+    ("f", "ف", 'As in "fan"'),
+    ("g", "گ", 'As in "go"'),
+    (
+        "gh",
+        "غ / گھ",
+        "گھ at the very start of a word (ghar, ghanta); غ elsewhere (ghalat, baagh)",
+    ),
+    ("h", "ہ", 'As in "hat"'),
+    ("j", "ج", 'As in "jam"'),
     ("jh", "جھ", "Aspirated j — jhoot, jhaadu"),
-    ("k", "ک", "As in \"kite\""),
-    ("kh", "خ / کھ", "خ at the start of most words (khabar, khoobsurat); کھ inside common verbs (dekh, likh, khana)"),
-    ("l", "ل", "As in \"lamp\""),
-    ("m", "م", "As in \"man\""),
-    ("n", "ن", "As in \"net\""),
-    ("p", "پ", "As in \"pen\""),
+    ("k", "ک", 'As in "kite"'),
+    (
+        "kh",
+        "خ / کھ",
+        "خ at the start of most words (khabar, khoobsurat); کھ inside common verbs (dekh, likh, khana)",
+    ),
+    ("l", "ل", 'As in "lamp"'),
+    ("m", "م", 'As in "man"'),
+    ("n", "ن", 'As in "net"'),
+    ("p", "پ", 'As in "pen"'),
     ("ph", "پھ", "Aspirated p — phool, phenk"),
-    ("q", "ق", "As in \"queen\" (throat q, not kw)"),
-    ("r", "ر", "As in \"run\""),
+    ("q", "ق", 'As in "queen" (throat q, not kw)'),
+    ("r", "ر", 'As in "run"'),
     ("rr", "ڑ", "Retroflex r — ladka, gaddi"),
     ("rrh", "ڑھ", "Aspirated retroflex r — barrhna"),
-    ("s", "س", "As in \"sun\""),
-    ("sh", "ش", "As in \"ship\""),
-    ("t", "ت", "As in \"top\""),
+    ("s", "س", 'As in "sun"'),
+    ("sh", "ش", 'As in "ship"'),
+    ("t", "ت", 'As in "top"'),
     ("tt", "ٹ", "Retroflex t — tez feel, tokri"),
     ("tth", "ٹھ", "Aspirated retroflex t — tthos"),
     ("th", "تھ", "Aspirated t — theek, thanda"),
-    ("w / v", "و", "As in \"win\""),
+    ("w / v", "و", 'As in "win"'),
     ("x", "خ / کس", "خ at the start of a word, کس elsewhere"),
-    ("y", "ی", "As in \"yes\""),
-    ("z", "ز", "As in \"zoo\""),
+    ("y", "ی", 'As in "yes"'),
+    ("z", "ز", 'As in "zoo"'),
     ("na", "نا", "Infinitive ending — karna, jaana"),
     ("ta / ti / te", "تا / تی / تے", "Present tense — karta, karti, karte"),
     ("o", "و / ؤ", "Imperative — karo, jao"),
@@ -1452,12 +1614,17 @@ class RomanUrduGuideDialog(QDialog):
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                     item.setFont(urdu_font)
                 else:
-                    item.setTextAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+                    item.setTextAlignment(
+                        Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft
+                    )
                 self.table.setItem(r, c, item)
         header = self.table.horizontalHeader()
         for c in range(len(headers)):
-            mode = QHeaderView.ResizeMode.ResizeToContents if c != len(headers) - 1 \
+            mode = (
+                QHeaderView.ResizeMode.ResizeToContents
+                if c != len(headers) - 1
                 else QHeaderView.ResizeMode.Stretch
+            )
             header.setSectionResizeMode(c, mode)
 
     def _show_combinations(self):

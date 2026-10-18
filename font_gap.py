@@ -43,6 +43,7 @@ hooks that mention font_gap: the import + manager + Tools-menu block in
 main.py, the apply_document() call in exporter._layout_copy(), and
 test_font_gap.py. Nothing else depends on it.
 """
+
 import bisect
 import sys
 import traceback
@@ -163,8 +164,11 @@ def apply_block(block, em: float) -> bool:
     if layout is None:
         return False
     current = layout.formats()
-    have = [(r.start, round(r.format.fontLetterSpacing(), 2))
-            for r in current if r.format.hasProperty(_MARK)]
+    have = [
+        (r.start, round(r.format.fontLetterSpacing(), 2))
+        for r in current
+        if r.format.hasProperty(_MARK)
+    ]
     # em <= 0 means "remove": don't even call the planner, so cleanup after a
     # planner failure can't hit the same failure again.
     desired = plan_block(block, em) if em > 0 else []
@@ -254,4 +258,6 @@ class FontGapManager(QObject):
         except Exception:
             pass
         print("font_gap: disabled after an error:\n" + detail, file=sys.stderr)
-        self.failed.emit(detail.strip().splitlines()[-1] if detail.strip() else "unknown error")
+        self.failed.emit(
+            detail.strip().splitlines()[-1] if detail.strip() else "unknown error"
+        )

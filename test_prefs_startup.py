@@ -8,6 +8,7 @@ or modifies your real preferences on any platform.
 
     python test_prefs_startup.py
 """
+
 import os
 import sys
 import tempfile
@@ -51,7 +52,10 @@ results = []
 
 
 def check(label, ok, detail=""):
-    print(f"[{'OK' if ok else 'FAIL'}] {label}" + (f" — {detail}" if detail and not ok else ""))
+    print(
+        f"[{'OK' if ok else 'FAIL'}] {label}"
+        + (f" — {detail}" if detail and not ok else "")
+    )
     results.append(ok)
 
 
@@ -59,17 +63,28 @@ def settings():
     return _isolated_settings(font_settings.ORG, font_settings.APP)
 
 
-assert Path(settings().fileName()).is_relative_to(_tmp), "settings are not isolated — refusing to run"
+assert Path(settings().fileName()).is_relative_to(
+    _tmp
+), "settings are not isolated — refusing to run"
 
 # 1. Nothing saved: the original built-in start.
-st = settings(); st.clear(); st.sync()
+st = settings()
+st.clear()
+st.sync()
 w = main.MainWindow()
-check("fresh install: page is 794x1123",
-      (w.canvas.page_width, w.canvas.page_height) == (794, 1123),
-      f"{w.canvas.page_width}x{w.canvas.page_height}")
-check("fresh install: 36pt", w.canvas.pending_size() == 36, str(w.canvas.pending_size()))
-check("fresh install: autosave every 60s", w._autosave_timer.interval() == 60000,
-      str(w._autosave_timer.interval()))
+check(
+    "fresh install: page is 794x1123",
+    (w.canvas.page_width, w.canvas.page_height) == (794, 1123),
+    f"{w.canvas.page_width}x{w.canvas.page_height}",
+)
+check(
+    "fresh install: 36pt", w.canvas.pending_size() == 36, str(w.canvas.pending_size())
+)
+check(
+    "fresh install: autosave every 60s",
+    w._autosave_timer.interval() == 60000,
+    str(w._autosave_timer.interval()),
+)
 bundled = w.canvas.pending_family()
 w.close()
 
@@ -82,30 +97,56 @@ st.setValue("prefs/autosaveIntervalSec", 30)
 st.setValue("prefs/defaultFamily", bundled)
 st.sync()
 w = main.MainWindow()
-check("saved prefs: page is 900x600",
-      (w.canvas.page_width, w.canvas.page_height) == (900, 600),
-      f"{w.canvas.page_width}x{w.canvas.page_height}")
+check(
+    "saved prefs: page is 900x600",
+    (w.canvas.page_width, w.canvas.page_height) == (900, 600),
+    f"{w.canvas.page_width}x{w.canvas.page_height}",
+)
 check("saved prefs: 48pt", w.canvas.pending_size() == 48, str(w.canvas.pending_size()))
-check("saved prefs: size box shows 48", w.size_spin.value() == 48, str(w.size_spin.value()))
-check("saved prefs: autosave every 30s", w._autosave_timer.interval() == 30000,
-      str(w._autosave_timer.interval()))
-check("saved prefs: family kept", w.canvas.pending_family() == bundled, w.canvas.pending_family())
+check(
+    "saved prefs: size box shows 48",
+    w.size_spin.value() == 48,
+    str(w.size_spin.value()),
+)
+check(
+    "saved prefs: autosave every 30s",
+    w._autosave_timer.interval() == 30000,
+    str(w._autosave_timer.interval()),
+)
+check(
+    "saved prefs: family kept",
+    w.canvas.pending_family() == bundled,
+    w.canvas.pending_family(),
+)
 w.close()
 
 # 3. A saved family that no longer exists falls back safely.
-st = settings(); st.setValue("prefs/defaultFamily", "Definitely Not A Real Font"); st.sync()
+st = settings()
+st.setValue("prefs/defaultFamily", "Definitely Not A Real Font")
+st.sync()
 w = main.MainWindow()
-check("missing saved font falls back to the bundled one",
-      w.canvas.pending_family() == bundled, w.canvas.pending_family())
-check("font combo matches the canvas", w.font_combo.currentText() == w.canvas.pending_family(),
-      f"{w.font_combo.currentText()!r} vs {w.canvas.pending_family()!r}")
+check(
+    "missing saved font falls back to the bundled one",
+    w.canvas.pending_family() == bundled,
+    w.canvas.pending_family(),
+)
+check(
+    "font combo matches the canvas",
+    w.font_combo.currentText() == w.canvas.pending_family(),
+    f"{w.font_combo.currentText()!r} vs {w.canvas.pending_family()!r}",
+)
 w.close()
 
 # 4. A corrupt/zero autosave interval can't create a tight loop.
-st = settings(); st.setValue("prefs/autosaveIntervalSec", 0); st.sync()
+st = settings()
+st.setValue("prefs/autosaveIntervalSec", 0)
+st.sync()
 w = main.MainWindow()
-check("zero autosave interval floored to 5s", w._autosave_timer.interval() == 5000,
-      str(w._autosave_timer.interval()))
+check(
+    "zero autosave interval floored to 5s",
+    w._autosave_timer.interval() == 5000,
+    str(w._autosave_timer.interval()),
+)
 w.close()
 
 print("\nALL PREFS STARTUP CHECKS PASSED" if all(results) else "\nSOME CHECKS FAILED")

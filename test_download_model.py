@@ -24,6 +24,7 @@ Two things this locks in, both from real bugs:
 
     python test_download_model.py
 """
+
 import shutil
 import sys
 import tempfile
@@ -119,24 +120,32 @@ try:
     # --- 1. a genuinely complete existing folder: no download attempted ---
     d = Path(tmp_root) / "already-complete"
     write_complete_model(d)
-    fake = install_fake_snapshot_download([])  # popping an empty list would raise IndexError
+    fake = install_fake_snapshot_download(
+        []
+    )  # popping an empty list would raise IndexError
     ok = run_download(d)
-    check("an already-complete local folder is accepted without calling snapshot_download",
-          ok is True and fake.calls == 0)
+    check(
+        "an already-complete local folder is accepted without calling snapshot_download",
+        ok is True and fake.calls == 0,
+    )
 
     # --- 2. first attempt succeeds cleanly ---
     d = Path(tmp_root) / "first-try-ok"
     fake = install_fake_snapshot_download(["ok"])
     ok = run_download(d)
-    check("a clean successful download is accepted on the first attempt",
-          ok is True and fake.calls == 1 and vu.local_model_available())
+    check(
+        "a clean successful download is accepted on the first attempt",
+        ok is True and fake.calls == 1 and vu.local_model_available(),
+    )
 
     # --- 3. snapshot_download raises twice, then succeeds ---
     d = Path(tmp_root) / "raises-then-ok"
     fake = install_fake_snapshot_download(["raise", "raise", "ok"])
     ok = run_download(d, max_retries=5)
-    check("retries past repeated raised errors and succeeds once one attempt works",
-          ok is True and fake.calls == 3)
+    check(
+        "retries past repeated raised errors and succeeds once one attempt works",
+        ok is True and fake.calls == 3,
+    )
 
     # --- 4. snapshot_download() returning cleanly is trusted even if the result
     # would fail our own completeness check -- regression test for a real bug:
@@ -153,15 +162,20 @@ try:
     d = Path(tmp_root) / "reports-success-trusted-even-if-looks-incomplete"
     fake = install_fake_snapshot_download(["incomplete"])
     ok = run_download(d, max_retries=5)
-    check("a snapshot_download() call that raises nothing is trusted as done in one "
-          "attempt, even if the result wouldn't pass local_model_available() on its own",
-          ok is True and fake.calls == 1)
+    check(
+        "a snapshot_download() call that raises nothing is trusted as done in one "
+        "attempt, even if the result wouldn't pass local_model_available() on its own",
+        ok is True and fake.calls == 1,
+    )
 
     # --- 5. every attempt fails: give up cleanly after max_retries, no broken folder left ---
     d = Path(tmp_root) / "always-fails"
     fake = install_fake_snapshot_download(["raise", "raise", "raise"])
     ok = run_download(d, max_retries=3)
-    check("gives up after max_retries and reports failure", ok is False and fake.calls == 3)
+    check(
+        "gives up after max_retries and reports failure",
+        ok is False and fake.calls == 3,
+    )
     check("doesn't leave a broken folder behind after giving up", not d.exists())
 
     # --- 6. a pre-existing truncated folder (today's actual bug) gets replaced
@@ -171,9 +185,11 @@ try:
     write_fake_model_file(d / "model.bin", 200)  # corrupt just the one file
     fake = install_fake_snapshot_download(["ok"])
     ok = run_download(d)
-    check("a pre-existing folder with a truncated file is re-downloaded rather than "
-          "accepted as already complete",
-          ok is True and fake.calls == 1)
+    check(
+        "a pre-existing folder with a truncated file is re-downloaded rather than "
+        "accepted as already complete",
+        ok is True and fake.calls == 1,
+    )
 finally:
     restore_hub()
     vu.MODEL_DIR = _orig_model_dir

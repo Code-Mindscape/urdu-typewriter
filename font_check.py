@@ -17,8 +17,8 @@ either way.
 from PyQt6.QtGui import QFont, QTextLayout, QTextOption
 from PyQt6.QtCore import Qt
 
-_BEH = "\u0628"             # ب  - a letter that always joins to what follows
-_BEH_TEH = "\u0628\u062A"   # ب + ت  - two letters that must join
+_BEH = "\u0628"  # ب  - a letter that always joins to what follows
+_BEH_TEH = "\u0628\u062a"  # ب + ت  - two letters that must join
 
 
 def _first_glyph(family: str, text: str):

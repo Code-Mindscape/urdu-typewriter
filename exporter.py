@@ -26,13 +26,32 @@ import math
 import sys
 
 from PyQt6.QtCore import (
-    Qt, QSize, QRect, QRectF, QSizeF, QMarginsF, QBuffer, QIODevice, QMimeData, QByteArray,
+    Qt,
+    QSize,
+    QRect,
+    QRectF,
+    QSizeF,
+    QMarginsF,
+    QBuffer,
+    QIODevice,
+    QMimeData,
+    QByteArray,
 )
-from PyQt6.QtGui import QImage, QPainter, QPdfWriter, QPageSize, QColor, QPixmap, QPen, QPainterPath
+from PyQt6.QtGui import (
+    QImage,
+    QPainter,
+    QPdfWriter,
+    QPageSize,
+    QColor,
+    QPixmap,
+    QPen,
+    QPainterPath,
+)
 from PyQt6.QtSvg import QSvgGenerator
 
 import font_gap
 import text_outlines
+
 
 def _layout_copy(document, page_width):
     """Clone the document and lock its wrap width to the page width, so
@@ -102,9 +121,19 @@ def _paint_border(painter, page_width, page_height, width_px, color, style=None)
     painter.restore()
 
 
-def _render_raster_image(document, page_width, page_height, out_width, out_height,
-                          background_color, background_image, background_image_mode,
-                          border_width, border_color, border_style=None):
+def _render_raster_image(
+    document,
+    page_width,
+    page_height,
+    out_width,
+    out_height,
+    background_color,
+    background_image,
+    background_image_mode,
+    border_width,
+    border_color,
+    border_style=None,
+):
     doc = _layout_copy(document, page_width)
 
     image = QImage(out_width, out_height, QImage.Format.Format_ARGB32_Premultiplied)
@@ -116,23 +145,47 @@ def _render_raster_image(document, page_width, page_height, out_width, out_heigh
     painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
     painter.scale(out_width / page_width, out_height / page_height)
     _paint_background(painter, page_width, page_height, background_color)
-    _paint_background_image(painter, page_width, page_height, background_image, background_image_mode)
+    _paint_background_image(
+        painter, page_width, page_height, background_image, background_image_mode
+    )
     doc.drawContents(painter)
-    _paint_border(painter, page_width, page_height, border_width, border_color, border_style)
+    _paint_border(
+        painter, page_width, page_height, border_width, border_color, border_style
+    )
     painter.end()
     return image
 
 
-def export_raster(document, page_width, page_height, out_width, out_height,
-                   background_color, file_path, image_format, jpg_quality=95,
-                   background_image=None, background_image_mode="fit",
-                   border_width=0, border_color=None, border_style=None):
+def export_raster(
+    document,
+    page_width,
+    page_height,
+    out_width,
+    out_height,
+    background_color,
+    file_path,
+    image_format,
+    jpg_quality=95,
+    background_image=None,
+    background_image_mode="fit",
+    border_width=0,
+    border_color=None,
+    border_style=None,
+):
     """background_color: QColor to paint behind the text, or None for a
     transparent background (PNG only — JPG has no alpha channel)."""
     image = _render_raster_image(
-        document, page_width, page_height, out_width, out_height,
-        background_color, background_image, background_image_mode,
-        border_width, border_color, border_style,
+        document,
+        page_width,
+        page_height,
+        out_width,
+        out_height,
+        background_color,
+        background_image,
+        background_image_mode,
+        border_width,
+        border_color,
+        border_style,
     )
 
     fmt = image_format.upper()
@@ -159,19 +212,35 @@ def export_raster(document, page_width, page_height, out_width, out_height,
         )
 
 
-def render_for_clipboard(document, page_width, page_height, background_color,
-                          background_image=None, background_image_mode="fit",
-                          border_width=0, border_color=None, border_style=None, scale=2.0):
+def render_for_clipboard(
+    document,
+    page_width,
+    page_height,
+    background_color,
+    background_image=None,
+    background_image_mode="fit",
+    border_width=0,
+    border_color=None,
+    border_style=None,
+    scale=2.0,
+):
     """Same rendering pipeline as export_raster(), returned as a QImage
     instead of written to a file — main.py puts this straight on the
     system clipboard for "Copy as Image". Defaults to a 2x page-size
     render: sharp enough to paste into a chat app or document without
     needing to ask for a resolution first, the way a real export does."""
     return _render_raster_image(
-        document, page_width, page_height,
-        round(page_width * scale), round(page_height * scale),
-        background_color, background_image, background_image_mode,
-        border_width, border_color, border_style,
+        document,
+        page_width,
+        page_height,
+        round(page_width * scale),
+        round(page_height * scale),
+        background_color,
+        background_image,
+        background_image_mode,
+        border_width,
+        border_color,
+        border_style,
     )
 
 
@@ -191,10 +260,19 @@ def _paint_text_as_outlines(painter, doc):
             painter.fillPath(path, group["color"])
 
 
-def render_svg_bytes(document, page_width, page_height, background_color,
-                      title="Urdu Typewriter", dpi=96, background_image=None,
-                      background_image_mode="fit", border_width=0, border_color=None,
-                      border_style=None) -> bytes:
+def render_svg_bytes(
+    document,
+    page_width,
+    page_height,
+    background_color,
+    title="Urdu Typewriter",
+    dpi=96,
+    background_image=None,
+    background_image_mode="fit",
+    border_width=0,
+    border_color=None,
+    border_style=None,
+) -> bytes:
     """Same rendering as export_svg() below, but returned as bytes instead
     of written to a file -- shared by export_svg() (which just writes the
     result to file_path) and main.py's "Copy as SVG" (which puts it on
@@ -206,7 +284,9 @@ def render_svg_bytes(document, page_width, page_height, background_color,
 
     generator = QSvgGenerator()
     generator.setOutputDevice(buffer)
-    generator.setResolution(dpi)  # keeps the SVG's physical size sane (px-like) instead of Qt's default ~72dpi-derived mm size
+    generator.setResolution(
+        dpi
+    )  # keeps the SVG's physical size sane (px-like) instead of Qt's default ~72dpi-derived mm size
     generator.setSize(QSize(int(page_width), int(page_height)))
     generator.setViewBox(QRect(0, 0, int(page_width), int(page_height)))
     generator.setTitle(title)
@@ -218,16 +298,21 @@ def render_svg_bytes(document, page_width, page_height, background_color,
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
     painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
     _paint_background(painter, page_width, page_height, background_color)
-    _paint_background_image(painter, page_width, page_height, background_image, background_image_mode)
+    _paint_background_image(
+        painter, page_width, page_height, background_image, background_image_mode
+    )
     _paint_text_as_outlines(painter, doc)
-    _paint_border(painter, page_width, page_height, border_width, border_color, border_style)
+    _paint_border(
+        painter, page_width, page_height, border_width, border_color, border_style
+    )
     painter.end()
 
     return bytes(buffer.data())
 
 
-def render_svg_curves_bytes(document, page_width, char_range=None,
-                            title="Urdu Typewriter", dpi=96) -> bytes:
+def render_svg_curves_bytes(
+    document, page_width, char_range=None, title="Urdu Typewriter", dpi=96
+) -> bytes:
     """Curves-only SVG for main.py's "Copy as SVG (Curves)": just the
     glyph outlines, nothing else.
 
@@ -336,7 +421,11 @@ def render_pdf_curves_bytes(document, page_width, char_range=None, dpi=96) -> by
 
     writer = QPdfWriter(buffer)
     writer.setResolution(dpi)
-    writer.setPageSize(QPageSize(QSizeF(max(0.01, width_pt), max(0.01, height_pt)), QPageSize.Unit.Point))
+    writer.setPageSize(
+        QPageSize(
+            QSizeF(max(0.01, width_pt), max(0.01, height_pt)), QPageSize.Unit.Point
+        )
+    )
     writer.setPageMargins(QMarginsF(0, 0, 0, 0))
 
     painter = QPainter()
@@ -402,14 +491,32 @@ def make_curves_mime_data(svg_bytes, pdf_bytes, platform=None) -> QMimeData:
     return mime
 
 
-def export_svg(document, page_width, page_height, background_color, file_path,
-               title="Urdu Typewriter", dpi=96, background_image=None,
-               background_image_mode="fit", border_width=0, border_color=None,
-               border_style=None):
+def export_svg(
+    document,
+    page_width,
+    page_height,
+    background_color,
+    file_path,
+    title="Urdu Typewriter",
+    dpi=96,
+    background_image=None,
+    background_image_mode="fit",
+    border_width=0,
+    border_color=None,
+    border_style=None,
+):
     data = render_svg_bytes(
-        document, page_width, page_height, background_color, title=title, dpi=dpi,
-        background_image=background_image, background_image_mode=background_image_mode,
-        border_width=border_width, border_color=border_color, border_style=border_style,
+        document,
+        page_width,
+        page_height,
+        background_color,
+        title=title,
+        dpi=dpi,
+        background_image=background_image,
+        background_image_mode=background_image_mode,
+        border_width=border_width,
+        border_color=border_color,
+        border_style=border_style,
     )
     try:
         with open(file_path, "wb") as f:
@@ -425,9 +532,19 @@ def export_svg(document, page_width, page_height, background_color, file_path,
         )
 
 
-def export_pdf(document, page_width, page_height, background_color, file_path, dpi=96,
-               background_image=None, background_image_mode="fit",
-               border_width=0, border_color=None, border_style=None):
+def export_pdf(
+    document,
+    page_width,
+    page_height,
+    background_color,
+    file_path,
+    dpi=96,
+    background_image=None,
+    background_image_mode="fit",
+    border_width=0,
+    border_color=None,
+    border_style=None,
+):
     doc = _layout_copy(document, page_width)
 
     writer = QPdfWriter(file_path)
@@ -448,9 +565,13 @@ def export_pdf(document, page_width, page_height, background_color, file_path, d
     # QPdfWriter's painter operates in device pixels at `dpi`, so page_width/
     # page_height px map straight onto the page with no extra scaling needed.
     _paint_background(painter, page_width, page_height, background_color)
-    _paint_background_image(painter, page_width, page_height, background_image, background_image_mode)
+    _paint_background_image(
+        painter, page_width, page_height, background_image, background_image_mode
+    )
     doc.drawContents(painter)
-    _paint_border(painter, page_width, page_height, border_width, border_color, border_style)
+    _paint_border(
+        painter, page_width, page_height, border_width, border_color, border_style
+    )
     painter.end()
 
 
@@ -496,7 +617,10 @@ def _eps_rgb(color) -> str:
     c = QColor(color)
     a = c.alphaF()
     channels = [a * ch + (1.0 - a) for ch in (c.redF(), c.greenF(), c.blueF())]
-    return " ".join(f"{v:.4f}".rstrip("0").rstrip(".") or "0" for v in channels) + " setrgbcolor"
+    return (
+        " ".join(f"{v:.4f}".rstrip("0").rstrip(".") or "0" for v in channels)
+        + " setrgbcolor"
+    )
 
 
 def _eps_path_ops(path):
@@ -546,9 +670,16 @@ def _eps_ascii(text, fallback="Untitled") -> str:
     return clean or fallback
 
 
-def _eps_background_image_lines(page_width, page_height, width_pt, height_pt,
-                                 background_color, background_image, mode,
-                                 max_edge=3000):
+def _eps_background_image_lines(
+    page_width,
+    page_height,
+    width_pt,
+    height_pt,
+    background_color,
+    background_image,
+    mode,
+    max_edge=3000,
+):
     """PostScript lines placing the page's background -- colour plus image,
     composed by the same _paint_background()/_paint_background_image() the
     other exports use, so fit/fill/center/tile look identical -- as a single
@@ -592,10 +723,19 @@ def _eps_background_image_lines(page_width, page_height, width_pt, height_pt,
     ]
 
 
-def render_eps_bytes(document, page_width, page_height, background_color,
-                     title="Urdu Typewriter", dpi=96, background_image=None,
-                     background_image_mode="fit", border_width=0, border_color=None,
-                     border_style=None) -> bytes:
+def render_eps_bytes(
+    document,
+    page_width,
+    page_height,
+    background_color,
+    title="Urdu Typewriter",
+    dpi=96,
+    background_image=None,
+    background_image_mode="fit",
+    border_width=0,
+    border_color=None,
+    border_style=None,
+) -> bytes:
     """The whole page as an EPS file's bytes: same inputs and same content
     as render_svg_bytes() (page background, optional background image,
     every glyph as a filled outline, optional border), so an EPS export
@@ -636,8 +776,13 @@ def render_eps_bytes(document, page_width, page_height, background_color,
             out.append(_eps_rgb(background_color))
             out.append(f"0 0 {bb_w} {bb_h} rectfill")
         out += _eps_background_image_lines(
-            page_width, page_height, width_pt, height_pt,
-            background_color, background_image, background_image_mode,
+            page_width,
+            page_height,
+            width_pt,
+            height_pt,
+            background_color,
+            background_image,
+            background_image_mode,
         )
     elif background_color is not None:
         out.append(_eps_rgb(background_color))
@@ -656,7 +801,9 @@ def render_eps_bytes(document, page_width, page_height, background_color,
             out.append("newpath")
             out.extend(ops)
             # Respect the path's own fill rule, like the SVG export does.
-            out.append("eofill" if path.fillRule() == Qt.FillRule.OddEvenFill else "fill")
+            out.append(
+                "eofill" if path.fillRule() == Qt.FillRule.OddEvenFill else "fill"
+            )
 
     # -- border: a stroked rectangle inset by half its width, as on screen.
     if border_width and border_width > 0:
@@ -677,14 +824,32 @@ def render_eps_bytes(document, page_width, page_height, background_color,
     return "\n".join(out).encode("ascii")
 
 
-def export_eps(document, page_width, page_height, background_color, file_path,
-               title="Urdu Typewriter", dpi=96, background_image=None,
-               background_image_mode="fit", border_width=0, border_color=None,
-               border_style=None):
+def export_eps(
+    document,
+    page_width,
+    page_height,
+    background_color,
+    file_path,
+    title="Urdu Typewriter",
+    dpi=96,
+    background_image=None,
+    background_image_mode="fit",
+    border_width=0,
+    border_color=None,
+    border_style=None,
+):
     data = render_eps_bytes(
-        document, page_width, page_height, background_color, title=title, dpi=dpi,
-        background_image=background_image, background_image_mode=background_image_mode,
-        border_width=border_width, border_color=border_color, border_style=border_style,
+        document,
+        page_width,
+        page_height,
+        background_color,
+        title=title,
+        dpi=dpi,
+        background_image=background_image,
+        background_image_mode=background_image_mode,
+        border_width=border_width,
+        border_color=border_color,
+        border_style=border_style,
     )
     try:
         with open(file_path, "wb") as f:
@@ -696,9 +861,19 @@ def export_eps(document, page_width, page_height, background_color, file_path,
         )
 
 
-def paint_page_for_printer(painter, document, page_width, page_height, background_color,
-                            background_image=None, background_image_mode="fit",
-                            border_width=0, border_color=None, border_style=None, scale=1.0):
+def paint_page_for_printer(
+    painter,
+    document,
+    page_width,
+    page_height,
+    background_color,
+    background_image=None,
+    background_image_mode="fit",
+    border_width=0,
+    border_color=None,
+    border_style=None,
+    scale=1.0,
+):
     """Paints the page onto an already-open painter (a QPrinter's, from
     main.py's Print handler) at `scale` device pixels per page pixel --
     so a printed page is rendered by exactly the same code as every file
@@ -707,16 +882,32 @@ def paint_page_for_printer(painter, document, page_width, page_height, backgroun
     painter.save()
     painter.scale(scale, scale)
     _paint_background(painter, page_width, page_height, background_color)
-    _paint_background_image(painter, page_width, page_height, background_image, background_image_mode)
+    _paint_background_image(
+        painter, page_width, page_height, background_image, background_image_mode
+    )
     doc.drawContents(painter)
-    _paint_border(painter, page_width, page_height, border_width, border_color, border_style)
+    _paint_border(
+        painter, page_width, page_height, border_width, border_color, border_style
+    )
     painter.restore()
 
 
-def export_all_formats(document, page_width, page_height, out_width, out_height,
-                        background_color, base_path, background_image=None,
-                        background_image_mode="fit", border_width=0, border_color=None,
-                        border_style=None, jpg_quality=95, formats=("PNG", "JPG", "SVG", "PDF", "EPS")):
+def export_all_formats(
+    document,
+    page_width,
+    page_height,
+    out_width,
+    out_height,
+    background_color,
+    base_path,
+    background_image=None,
+    background_image_mode="fit",
+    border_width=0,
+    border_color=None,
+    border_style=None,
+    jpg_quality=95,
+    formats=("PNG", "JPG", "SVG", "PDF", "EPS"),
+):
     """Exports the same page to every format in `formats` in one call, each
     named from `base_path` with its own extension swapped in (a base_path
     of ".../design.png" produces design.png, design.jpg, design.svg,
@@ -727,34 +918,66 @@ def export_all_formats(document, page_width, page_height, out_width, out_height,
     functions above.
     """
     import os
+
     stem = os.path.splitext(base_path)[0]
     written = []
     for fmt in formats:
         path = f"{stem}.{fmt.lower()}"
         if fmt in ("PNG", "JPG", "JPEG"):
             export_raster(
-                document, page_width, page_height, out_width, out_height,
-                background_color, path, fmt, jpg_quality=jpg_quality,
-                background_image=background_image, background_image_mode=background_image_mode,
-                border_width=border_width, border_color=border_color, border_style=border_style,
+                document,
+                page_width,
+                page_height,
+                out_width,
+                out_height,
+                background_color,
+                path,
+                fmt,
+                jpg_quality=jpg_quality,
+                background_image=background_image,
+                background_image_mode=background_image_mode,
+                border_width=border_width,
+                border_color=border_color,
+                border_style=border_style,
             )
         elif fmt == "SVG":
             export_svg(
-                document, page_width, page_height, background_color, path,
-                background_image=background_image, background_image_mode=background_image_mode,
-                border_width=border_width, border_color=border_color, border_style=border_style,
+                document,
+                page_width,
+                page_height,
+                background_color,
+                path,
+                background_image=background_image,
+                background_image_mode=background_image_mode,
+                border_width=border_width,
+                border_color=border_color,
+                border_style=border_style,
             )
         elif fmt == "PDF":
             export_pdf(
-                document, page_width, page_height, background_color, path,
-                background_image=background_image, background_image_mode=background_image_mode,
-                border_width=border_width, border_color=border_color, border_style=border_style,
+                document,
+                page_width,
+                page_height,
+                background_color,
+                path,
+                background_image=background_image,
+                background_image_mode=background_image_mode,
+                border_width=border_width,
+                border_color=border_color,
+                border_style=border_style,
             )
         elif fmt == "EPS":
             export_eps(
-                document, page_width, page_height, background_color, path,
-                background_image=background_image, background_image_mode=background_image_mode,
-                border_width=border_width, border_color=border_color, border_style=border_style,
+                document,
+                page_width,
+                page_height,
+                background_color,
+                path,
+                background_image=background_image,
+                background_image_mode=background_image_mode,
+                border_width=border_width,
+                border_color=border_color,
+                border_style=border_style,
             )
         else:
             continue

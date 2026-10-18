@@ -23,8 +23,15 @@ import contextlib
 
 from PyQt6.QtWidgets import QTextEdit, QGraphicsItem
 from PyQt6.QtGui import (
-    QColor, QFont, QTextCharFormat, QTextCursor, QTextBlockFormat,
-    QPainter, QPixmap, QBrush, QPen,
+    QColor,
+    QFont,
+    QTextCharFormat,
+    QTextCursor,
+    QTextBlockFormat,
+    QPainter,
+    QPixmap,
+    QBrush,
+    QPen,
 )
 from PyQt6.QtCore import Qt, QRectF, QEventLoop
 
@@ -32,9 +39,17 @@ import roman_urdu
 
 
 class PageCanvas(QTextEdit):
-    def __init__(self, width_px=1080, height_px=1080, background=None,
-                 margin_px=40, default_family="Noto Nastaliq Urdu",
-                 default_style="Regular", default_size=36, parent=None):
+    def __init__(
+        self,
+        width_px=1080,
+        height_px=1080,
+        background=None,
+        margin_px=40,
+        default_family="Noto Nastaliq Urdu",
+        default_style="Regular",
+        default_size=36,
+        parent=None,
+    ):
         super().__init__(parent)
         self.page_width = width_px
         self.page_height = height_px
@@ -62,7 +77,7 @@ class PageCanvas(QTextEdit):
         # (below) is the single place that decides how they combine, so there's
         # one source of truth for "what does the page background actually look
         # like right now" instead of that logic being spread across callers.
-        self._background_image = None       # QImage or None
+        self._background_image = None  # QImage or None
         self._background_image_mode = "fit"  # "fit" | "fill" | "center" | "tile"
         self._border_width = 0
         self._border_color = QColor("black")
@@ -96,9 +111,13 @@ class PageCanvas(QTextEdit):
         self._pending_vertical = QTextCharFormat.VerticalAlignment.AlignNormal
         self._apply_pending(to_selection=False)
 
-        self._vertical_align = "top"  # "top" | "middle" | "bottom" -- see set_vertical_align()
+        self._vertical_align = (
+            "top"  # "top" | "middle" | "bottom" -- see set_vertical_align()
+        )
         self._border_style = Qt.PenStyle.SolidLine
-        self._in_vertical_align = False  # reentrancy guard -- see _apply_vertical_align()
+        self._in_vertical_align = (
+            False  # reentrancy guard -- see _apply_vertical_align()
+        )
 
         self.cursorPositionChanged.connect(self._on_cursor_moved)
         self.selectionChanged.connect(self._sync_pending_word_spacing)
@@ -148,7 +167,9 @@ class PageCanvas(QTextEdit):
     def background_image_mode(self) -> str:
         return self._background_image_mode
 
-    def set_border(self, width_px: int, color: QColor = None, style: Qt.PenStyle = None):
+    def set_border(
+        self, width_px: int, color: QColor = None, style: Qt.PenStyle = None
+    ):
         self._border_width = max(0, int(width_px))
         if color is not None:
             self._border_color = QColor(color)
@@ -217,8 +238,14 @@ class PageCanvas(QTextEdit):
             painter.setPen(pen)
             painter.setBrush(Qt.BrushStyle.NoBrush)
             half = self._border_width / 2
-            painter.drawRect(QRectF(half, half, rect.width() - self._border_width,
-                                     rect.height() - self._border_width))
+            painter.drawRect(
+                QRectF(
+                    half,
+                    half,
+                    rect.width() - self._border_width,
+                    rect.height() - self._border_width,
+                )
+            )
             painter.end()
 
     # -- page geometry ----------------------------------------------------
@@ -276,7 +303,9 @@ class PageCanvas(QTextEdit):
         if self._pending_style:
             f.setStyleName(self._pending_style)
         f.setPointSize(self._pending_size)
-        f.setLetterSpacing(QFont.SpacingType.PercentageSpacing, self._pending_letter_spacing)
+        f.setLetterSpacing(
+            QFont.SpacingType.PercentageSpacing, self._pending_letter_spacing
+        )
         f.setWordSpacing(self._pending_word_spacing)
         return f
 
@@ -348,13 +377,19 @@ class PageCanvas(QTextEdit):
     def set_pending_superscript(self, on: bool):
         # Superscript and subscript are mutually exclusive -- turning one on
         # always means the other is off, never both raised and lowered.
-        self._pending_vertical = (QTextCharFormat.VerticalAlignment.AlignSuperScript if on
-                                   else QTextCharFormat.VerticalAlignment.AlignNormal)
+        self._pending_vertical = (
+            QTextCharFormat.VerticalAlignment.AlignSuperScript
+            if on
+            else QTextCharFormat.VerticalAlignment.AlignNormal
+        )
         self._apply_pending(to_selection=True)
 
     def set_pending_subscript(self, on: bool):
-        self._pending_vertical = (QTextCharFormat.VerticalAlignment.AlignSubScript if on
-                                   else QTextCharFormat.VerticalAlignment.AlignNormal)
+        self._pending_vertical = (
+            QTextCharFormat.VerticalAlignment.AlignSubScript
+            if on
+            else QTextCharFormat.VerticalAlignment.AlignNormal
+        )
         self._apply_pending(to_selection=True)
 
     def clear_formatting(self):
@@ -394,16 +429,24 @@ class PageCanvas(QTextEdit):
         return self._pending_strikeout
 
     def pending_highlight(self):
-        return QColor(self._pending_highlight) if self._pending_highlight is not None else None
+        return (
+            QColor(self._pending_highlight)
+            if self._pending_highlight is not None
+            else None
+        )
 
     def pending_letter_spacing(self) -> int:
         return self._pending_letter_spacing
 
     def pending_superscript(self) -> bool:
-        return self._pending_vertical == QTextCharFormat.VerticalAlignment.AlignSuperScript
+        return (
+            self._pending_vertical == QTextCharFormat.VerticalAlignment.AlignSuperScript
+        )
 
     def pending_subscript(self) -> bool:
-        return self._pending_vertical == QTextCharFormat.VerticalAlignment.AlignSubScript
+        return (
+            self._pending_vertical == QTextCharFormat.VerticalAlignment.AlignSubScript
+        )
 
     def apply_alignment(self, alignment: Qt.AlignmentFlag):
         self.setAlignment(alignment)
@@ -454,18 +497,27 @@ class PageCanvas(QTextEdit):
         else:
             key = ("line", cursor.block().position())
         bf = QTextBlockFormat()
-        bf.setLineHeight(float(percent), QTextBlockFormat.LineHeightTypes.ProportionalHeight.value)
+        bf.setLineHeight(
+            float(percent), QTextBlockFormat.LineHeightTypes.ProportionalHeight.value
+        )
         with self._live_edit(cursor, key):
             cursor.mergeBlockFormat(bf)
         self.setTextCursor(cursor)
 
     def current_line_spacing(self) -> int:
         cursor = self.textCursor()
-        block = (self.document().findBlock(cursor.selectionStart())
-                 if cursor.hasSelection() else cursor.block())
+        block = (
+            self.document().findBlock(cursor.selectionStart())
+            if cursor.hasSelection()
+            else cursor.block()
+        )
         bf = block.blockFormat()
         height = bf.lineHeight()
-        if height <= 0 or bf.lineHeightType() != QTextBlockFormat.LineHeightTypes.ProportionalHeight.value:
+        if (
+            height <= 0
+            or bf.lineHeightType()
+            != QTextBlockFormat.LineHeightTypes.ProportionalHeight.value
+        ):
             return 100
         return int(round(height))
 
@@ -632,7 +684,9 @@ class PageCanvas(QTextEdit):
             menu.popup(event.globalPos())
             proxy = menu.graphicsProxyWidget()
             if proxy is not None:
-                proxy.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations, True)
+                proxy.setFlag(
+                    QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations, True
+                )
             loop = QEventLoop()
             menu.aboutToHide.connect(loop.quit)
             loop.exec()
@@ -646,7 +700,11 @@ class PageCanvas(QTextEdit):
         block_text = cursor.block().text()
         pos_in_block = cursor.positionInBlock()
         start = pos_in_block
-        while start > 0 and block_text[start - 1].isascii() and block_text[start - 1].isalpha():
+        while (
+            start > 0
+            and block_text[start - 1].isascii()
+            and block_text[start - 1].isalpha()
+        ):
             start -= 1
         if start == pos_in_block:
             return  # nothing Latin immediately before the cursor
@@ -689,8 +747,10 @@ class PageCanvas(QTextEdit):
         cursor = self.textCursor()
         if cursor.position() > 0:
             probe = QTextCursor(cursor)
-            probe.movePosition(QTextCursor.MoveOperation.PreviousCharacter,
-                                QTextCursor.MoveMode.KeepAnchor)
+            probe.movePosition(
+                QTextCursor.MoveOperation.PreviousCharacter,
+                QTextCursor.MoveMode.KeepAnchor,
+            )
             preceding = probe.selectedText()
             if preceding and not preceding.isspace():
                 cursor.insertText(" ", self._make_format())

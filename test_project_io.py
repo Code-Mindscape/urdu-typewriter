@@ -8,6 +8,7 @@ degrades gracefully instead of failing the whole load partway through.
 
     python test_project_io.py
 """
+
 import sys
 import os
 import json
@@ -33,7 +34,9 @@ def expect_load_error(name, path, message_fragment=None):
         ok = message_fragment is None or message_fragment.lower() in str(e).lower()
         check(name, ok, str(e) if not ok else "")
     except Exception as e:
-        check(name, False, f"raised {type(e).__name__} instead of ProjectLoadError: {e}")
+        check(
+            name, False, f"raised {type(e).__name__} instead of ProjectLoadError: {e}"
+        )
 
 
 tmp = tempfile.mkdtemp()
@@ -49,24 +52,39 @@ def write(name, content):
 # ----------------------------------------------------------------------
 print("--- malformed files raise ProjectLoadError with a clear message ---")
 expect_load_error("not valid JSON at all", write("bad1.utw", "{not json"), "corrupted")
-expect_load_error("valid JSON but not an object (a bare list)",
-                   write("bad2.utw", "[1, 2, 3]"), "doesn't look like")
-expect_load_error("valid JSON object but no version field",
-                   write("bad3.utw", "{}"), "newer version")
-expect_load_error("future format version",
-                   write("bad4.utw", json.dumps({"version": 999, "page": {}, "blocks": []})),
-                   "newer version")
-expect_load_error("page field wrong type",
-                   write("bad5.utw", json.dumps({"version": 1, "page": "nope", "blocks": []})),
-                   "corrupted")
-expect_load_error("blocks field wrong type",
-                   write("bad6.utw", json.dumps({"version": 1, "page": {}, "blocks": "nope"})),
-                   "corrupted")
-expect_load_error("a block with non-list runs",
-                   write("bad7.utw", json.dumps({
-                       "version": 1, "page": {}, "blocks": [{"runs": "nope"}]
-                   })), "corrupted")
-expect_load_error("nonexistent file", os.path.join(tmp, "does-not-exist.utw"), "no longer exists")
+expect_load_error(
+    "valid JSON but not an object (a bare list)",
+    write("bad2.utw", "[1, 2, 3]"),
+    "doesn't look like",
+)
+expect_load_error(
+    "valid JSON object but no version field", write("bad3.utw", "{}"), "newer version"
+)
+expect_load_error(
+    "future format version",
+    write("bad4.utw", json.dumps({"version": 999, "page": {}, "blocks": []})),
+    "newer version",
+)
+expect_load_error(
+    "page field wrong type",
+    write("bad5.utw", json.dumps({"version": 1, "page": "nope", "blocks": []})),
+    "corrupted",
+)
+expect_load_error(
+    "blocks field wrong type",
+    write("bad6.utw", json.dumps({"version": 1, "page": {}, "blocks": "nope"})),
+    "corrupted",
+)
+expect_load_error(
+    "a block with non-list runs",
+    write(
+        "bad7.utw", json.dumps({"version": 1, "page": {}, "blocks": [{"runs": "nope"}]})
+    ),
+    "corrupted",
+)
+expect_load_error(
+    "nonexistent file", os.path.join(tmp, "does-not-exist.utw"), "no longer exists"
+)
 
 # Binary garbage that isn't valid UTF-8 text at all
 binpath = os.path.join(tmp, "binary.utw")
@@ -80,21 +98,51 @@ if hasattr(os, "chmod") and os.name != "nt" and os.geteuid() != 0:
     try:
         expect_load_error("permission denied", noperm, "permission denied")
     finally:
-        os.chmod(noperm, stat.S_IRUSR | stat.S_IWUSR)  # restore so tempdir cleanup can remove it
+        os.chmod(
+            noperm, stat.S_IRUSR | stat.S_IWUSR
+        )  # restore so tempdir cleanup can remove it
 else:
-    print("[SKIP] permission denied — running as root, which bypasses file permissions "
-          "(PermissionError handling itself is still real code, just not exercisable here)")
+    print(
+        "[SKIP] permission denied — running as root, which bypasses file permissions "
+        "(PermissionError handling itself is still real code, just not exercisable here)"
+    )
 
 # ----------------------------------------------------------------------
 print("\n--- a well-formed file loads and validates cleanly ---")
-good_path = write("good.utw", json.dumps({
-    "version": project_io.FORMAT_VERSION,
-    "page": {"width": 800, "height": 1000, "margin": 40, "background_color": "#ffffff"},
-    "pending": {"family": "Noto Nastaliq Urdu", "style": "Regular", "size": 24, "color": "#000000"},
-    "blocks": [{"alignment": "right", "runs": [
-        {"text": "سلام", "family": "Noto Nastaliq Urdu", "style": "Regular", "size": 24, "color": "#000000"}
-    ]}],
-}))
+good_path = write(
+    "good.utw",
+    json.dumps(
+        {
+            "version": project_io.FORMAT_VERSION,
+            "page": {
+                "width": 800,
+                "height": 1000,
+                "margin": 40,
+                "background_color": "#ffffff",
+            },
+            "pending": {
+                "family": "Noto Nastaliq Urdu",
+                "style": "Regular",
+                "size": 24,
+                "color": "#000000",
+            },
+            "blocks": [
+                {
+                    "alignment": "right",
+                    "runs": [
+                        {
+                            "text": "سلام",
+                            "family": "Noto Nastaliq Urdu",
+                            "style": "Regular",
+                            "size": 24,
+                            "color": "#000000",
+                        }
+                    ],
+                }
+            ],
+        }
+    ),
+)
 try:
     loaded = project_io.load_project(good_path)
     check("well-formed file loads without raising", True)
@@ -127,86 +175,194 @@ def try_apply(name, loaded_dict):
         return None
 
 
-try_apply("non-numeric page width falls back instead of raising", {
-    "page": {"width": "not-a-number", "height": 1000, "margin": 40, "background_color": "#fff"},
-    "pending": {}, "blocks": [],
-})
+try_apply(
+    "non-numeric page width falls back instead of raising",
+    {
+        "page": {
+            "width": "not-a-number",
+            "height": 1000,
+            "margin": 40,
+            "background_color": "#fff",
+        },
+        "pending": {},
+        "blocks": [],
+    },
+)
 
-try_apply("negative page width is clamped, not passed through raw", {
-    "page": {"width": -500, "height": 1000, "margin": 40, "background_color": "#fff"},
-    "pending": {}, "blocks": [],
-})
+try_apply(
+    "negative page width is clamped, not passed through raw",
+    {
+        "page": {
+            "width": -500,
+            "height": 1000,
+            "margin": 40,
+            "background_color": "#fff",
+        },
+        "pending": {},
+        "blocks": [],
+    },
+)
 
-canvas = try_apply("non-numeric run size falls back instead of aborting the whole load", {
-    "page": {"width": 800, "height": 1000, "margin": 40, "background_color": "#fff"},
-    "pending": {},
-    "blocks": [{"alignment": "right", "runs": [
-        {"text": "test", "size": "huge", "color": "#000000"}
-    ]}],
-})
+canvas = try_apply(
+    "non-numeric run size falls back instead of aborting the whole load",
+    {
+        "page": {
+            "width": 800,
+            "height": 1000,
+            "margin": 40,
+            "background_color": "#fff",
+        },
+        "pending": {},
+        "blocks": [
+            {
+                "alignment": "right",
+                "runs": [{"text": "test", "size": "huge", "color": "#000000"}],
+            }
+        ],
+    },
+)
 if canvas is not None:
-    check("...and the text itself still made it in", canvas.toPlainText() == "test",
-          repr(canvas.toPlainText()))
+    check(
+        "...and the text itself still made it in",
+        canvas.toPlainText() == "test",
+        repr(canvas.toPlainText()),
+    )
 
-canvas = try_apply("a malformed run inside a block is skipped, not fatal to the rest", {
-    "page": {"width": 800, "height": 1000, "margin": 40, "background_color": "#fff"},
-    "pending": {},
-    "blocks": [{"alignment": "right", "runs": [
-        "not-a-dict-run", {"text": "ok text", "color": "#000000"}
-    ]}],
-})
+canvas = try_apply(
+    "a malformed run inside a block is skipped, not fatal to the rest",
+    {
+        "page": {
+            "width": 800,
+            "height": 1000,
+            "margin": 40,
+            "background_color": "#fff",
+        },
+        "pending": {},
+        "blocks": [
+            {
+                "alignment": "right",
+                "runs": ["not-a-dict-run", {"text": "ok text", "color": "#000000"}],
+            }
+        ],
+    },
+)
 if canvas is not None:
-    check("...and the well-formed run next to it still landed",
-          "ok text" in canvas.toPlainText(), repr(canvas.toPlainText()))
+    check(
+        "...and the well-formed run next to it still landed",
+        "ok text" in canvas.toPlainText(),
+        repr(canvas.toPlainText()),
+    )
 
-canvas = try_apply("invalid color string falls back instead of raising", {
-    "page": {"width": 800, "height": 1000, "margin": 40, "background_color": "not-a-color"},
-    "pending": {}, "blocks": [],
-})
+canvas = try_apply(
+    "invalid color string falls back instead of raising",
+    {
+        "page": {
+            "width": 800,
+            "height": 1000,
+            "margin": 40,
+            "background_color": "not-a-color",
+        },
+        "pending": {},
+        "blocks": [],
+    },
+)
 
 # ----------------------------------------------------------------------
 print("\n--- background image, border, and per-run formatting (added in format v3) ---")
 
-canvas = try_apply("garbage background_image data falls back to 'no image' instead of raising", {
-    "page": {"width": 800, "height": 1000, "margin": 40, "background_color": "#fff",
-              "background_image": "not valid base64 png data!!"},
-    "pending": {}, "blocks": [],
-})
+canvas = try_apply(
+    "garbage background_image data falls back to 'no image' instead of raising",
+    {
+        "page": {
+            "width": 800,
+            "height": 1000,
+            "margin": 40,
+            "background_color": "#fff",
+            "background_image": "not valid base64 png data!!",
+        },
+        "pending": {},
+        "blocks": [],
+    },
+)
 if canvas is not None:
-    check("...and background_image() is None, not a broken image", canvas.background_image() is None)
+    check(
+        "...and background_image() is None, not a broken image",
+        canvas.background_image() is None,
+    )
 
-canvas = try_apply("an out-of-range background_image_mode falls back to 'fit'", {
-    "page": {"width": 800, "height": 1000, "margin": 40, "background_color": "#fff",
-              "background_image_mode": "explode"},
-    "pending": {}, "blocks": [],
-})
+canvas = try_apply(
+    "an out-of-range background_image_mode falls back to 'fit'",
+    {
+        "page": {
+            "width": 800,
+            "height": 1000,
+            "margin": 40,
+            "background_color": "#fff",
+            "background_image_mode": "explode",
+        },
+        "pending": {},
+        "blocks": [],
+    },
+)
 if canvas is not None:
     check("...", canvas.background_image_mode() == "fit")
 
-canvas = try_apply("a v2 file with none of the new fields at all still loads cleanly", {
-    "page": {"width": 800, "height": 1000, "margin": 40, "background_color": "#fff"},
-    "pending": {"family": "Arial", "style": "", "size": 16, "color": "#000000"},
-    "blocks": [{"alignment": "right", "runs": [
-        {"text": "old file, no new fields", "family": "Arial", "style": "", "size": 16, "color": "#000000"}
-    ]}],
-})
+canvas = try_apply(
+    "a v2 file with none of the new fields at all still loads cleanly",
+    {
+        "page": {
+            "width": 800,
+            "height": 1000,
+            "margin": 40,
+            "background_color": "#fff",
+        },
+        "pending": {"family": "Arial", "style": "", "size": 16, "color": "#000000"},
+        "blocks": [
+            {
+                "alignment": "right",
+                "runs": [
+                    {
+                        "text": "old file, no new fields",
+                        "family": "Arial",
+                        "style": "",
+                        "size": 16,
+                        "color": "#000000",
+                    }
+                ],
+            }
+        ],
+    },
+)
 if canvas is not None:
     check("...text came through", canvas.toPlainText() == "old file, no new fields")
     check("...border defaults to 0 (none)", canvas.border_width() == 0)
     check("...background image defaults to None", canvas.background_image() is None)
-    check("...border style defaults to solid", canvas.border_style() == Qt.PenStyle.SolidLine)
+    check(
+        "...border style defaults to solid",
+        canvas.border_style() == Qt.PenStyle.SolidLine,
+    )
     check("...vertical alignment defaults to top", canvas.vertical_align() == "top")
-    check("...word spacing defaults to 0 (field didn't exist yet)",
-          canvas.document().begin().begin().fragment().charFormat().font().wordSpacing() == 0.0)
-    check("...pending word spacing defaults to 0 too", canvas.pending_word_spacing() == 0.0)
+    check(
+        "...word spacing defaults to 0 (field didn't exist yet)",
+        canvas.document().begin().begin().fragment().charFormat().font().wordSpacing()
+        == 0.0,
+    )
+    check(
+        "...pending word spacing defaults to 0 too",
+        canvas.pending_word_spacing() == 0.0,
+    )
 
 # Full round trip through a real canvas: save what a person actually set,
 # reload it into a fresh canvas, and check every new property survived —
 # broader than the field-by-field checks above, closer to what actually
 # happens when someone saves and reopens a project.
 from PyQt6.QtCore import Qt as _Qt
-rt_canvas = PageCanvas(500, 500, "#eeeeee", 25, default_family="Arial", default_style="", default_size=20)
+
+rt_canvas = PageCanvas(
+    500, 500, "#eeeeee", 25, default_family="Arial", default_style="", default_size=20
+)
 from PyQt6.QtGui import QColor as _QColor, QImage as _QImage
+
 bg_img = _QImage(40, 40, _QImage.Format.Format_RGB32)
 bg_img.fill(_QColor("#336699"))
 rt_canvas.set_background_image(bg_img, mode="tile")
@@ -223,48 +379,89 @@ rt_canvas.set_word_spacing(37)
 rt_canvas.apply_line_spacing(140)
 rt_canvas.set_vertical_align("middle")
 
-rt_path = write("roundtrip.utw", "")  # create the path; save_project() will overwrite it
+rt_path = write(
+    "roundtrip.utw", ""
+)  # create the path; save_project() will overwrite it
 try:
     project_io.save_project(rt_path, rt_canvas)
     reloaded = project_io.load_project(rt_path)
-    fresh = PageCanvas(10, 10, "white", 0, default_family="Arial", default_style="", default_size=10)
+    fresh = PageCanvas(
+        10, 10, "white", 0, default_family="Arial", default_style="", default_size=10
+    )
     project_io.apply_loaded_project(reloaded, fresh)
 
-    check("round trip: file was saved as format version 4",
-          json.load(open(rt_path))["version"] == 4)
-    check("round trip: text preserved", fresh.toPlainText() == "round trip me",
-          repr(fresh.toPlainText()))
-    check("round trip: background image preserved",
-          fresh.background_image() is not None and not fresh.background_image().isNull())
-    check("round trip: background image mode preserved", fresh.background_image_mode() == "tile")
-    check("round trip: border width+color preserved",
-          fresh.border_width() == 4 and fresh.border_color().name().lower() == "#998877")
-    check("round trip: border style preserved", fresh.border_style() == _Qt.PenStyle.DashLine)
-    check("round trip: vertical alignment preserved", fresh.vertical_align() == "middle")
+    check(
+        "round trip: file was saved as format version 4",
+        json.load(open(rt_path))["version"] == 4,
+    )
+    check(
+        "round trip: text preserved",
+        fresh.toPlainText() == "round trip me",
+        repr(fresh.toPlainText()),
+    )
+    check(
+        "round trip: background image preserved",
+        fresh.background_image() is not None and not fresh.background_image().isNull(),
+    )
+    check(
+        "round trip: background image mode preserved",
+        fresh.background_image_mode() == "tile",
+    )
+    check(
+        "round trip: border width+color preserved",
+        fresh.border_width() == 4 and fresh.border_color().name().lower() == "#998877",
+    )
+    check(
+        "round trip: border style preserved",
+        fresh.border_style() == _Qt.PenStyle.DashLine,
+    )
+    check(
+        "round trip: vertical alignment preserved", fresh.vertical_align() == "middle"
+    )
     first_block = fresh.document().begin()
     first_frag = first_block.begin().fragment()
     first_fmt = first_frag.charFormat()
     check("round trip: underline preserved", first_fmt.fontUnderline() is True)
-    check("round trip: highlight color preserved",
-          first_fmt.background().color().name().lower() == "#00ff00")
-    check("round trip: letter spacing preserved", round(first_fmt.font().letterSpacing()) == 133)
-    check("round trip: word spacing preserved", round(first_fmt.font().wordSpacing(), 2) == 37.0,
-          str(first_fmt.font().wordSpacing()))
-    check("round trip: line spacing preserved", round(first_block.blockFormat().lineHeight()) == 140)
+    check(
+        "round trip: highlight color preserved",
+        first_fmt.background().color().name().lower() == "#00ff00",
+    )
+    check(
+        "round trip: letter spacing preserved",
+        round(first_fmt.font().letterSpacing()) == 133,
+    )
+    check(
+        "round trip: word spacing preserved",
+        round(first_fmt.font().wordSpacing(), 2) == 37.0,
+        str(first_fmt.font().wordSpacing()),
+    )
+    check(
+        "round trip: line spacing preserved",
+        round(first_block.blockFormat().lineHeight()) == 140,
+    )
 
     # An empty page has no run to carry word spacing on, so it has to ride
     # along as "pending" instead (same mechanism family/size/color already
     # use) -- check that path separately.
-    empty_canvas = PageCanvas(10, 10, "white", 0, default_family="Arial", default_style="", default_size=10)
+    empty_canvas = PageCanvas(
+        10, 10, "white", 0, default_family="Arial", default_style="", default_size=10
+    )
     empty_canvas.set_word_spacing(64)
     empty_path = write("empty-word-spacing.utw", "")
     project_io.save_project(empty_path, empty_canvas)
-    empty_reloaded = PageCanvas(10, 10, "white", 0, default_family="Arial", default_style="", default_size=10)
+    empty_reloaded = PageCanvas(
+        10, 10, "white", 0, default_family="Arial", default_style="", default_size=10
+    )
     project_io.apply_loaded_project(project_io.load_project(empty_path), empty_reloaded)
-    check("round trip: pending word spacing preserved on an empty page",
-          empty_reloaded.pending_word_spacing() == 64.0, str(empty_reloaded.pending_word_spacing()))
+    check(
+        "round trip: pending word spacing preserved on an empty page",
+        empty_reloaded.pending_word_spacing() == 64.0,
+        str(empty_reloaded.pending_word_spacing()),
+    )
 except Exception as e:
-    check("full round trip completes without raising", False, f"{type(e).__name__}: {e}")
+    check(
+        "full round trip completes without raising", False, f"{type(e).__name__}: {e}"
+    )
 
 # ----------------------------------------------------------------------
 print("\n--- undo stack starts clean (regression test) ---")
@@ -275,19 +472,29 @@ print("\n--- undo stack starts clean (regression test) ---")
 # was listening for a False->True transition on undoAvailable that had
 # already happened before it could connect. See PageCanvas.__init__'s and
 # apply_loaded_project()'s calls to clearUndoRedoStacks().
-fresh_canvas = PageCanvas(400, 400, "#eeeeee", 30, default_family="Arial", default_style="", default_size=14)
-check("a freshly constructed canvas has NO undo history available "
-      "(setAlignment/setDocumentMargin during setup must not count as user edits)",
-      fresh_canvas.document().isUndoAvailable() is False)
+fresh_canvas = PageCanvas(
+    400, 400, "#eeeeee", 30, default_family="Arial", default_style="", default_size=14
+)
+check(
+    "a freshly constructed canvas has NO undo history available "
+    "(setAlignment/setDocumentMargin during setup must not count as user edits)",
+    fresh_canvas.document().isUndoAvailable() is False,
+)
 fresh_canvas.textCursor().insertText("x")
-check("...but a real edit after construction does become undoable",
-      fresh_canvas.document().isUndoAvailable() is True)
+check(
+    "...but a real edit after construction does become undoable",
+    fresh_canvas.document().isUndoAvailable() is True,
+)
 
-loaded_canvas = PageCanvas(10, 10, "white", 0, default_family="Arial", default_style="", default_size=10)
+loaded_canvas = PageCanvas(
+    10, 10, "white", 0, default_family="Arial", default_style="", default_size=10
+)
 project_io.apply_loaded_project(project_io.load_project(rt_path), loaded_canvas)
-check("a canvas right after loading a project also has no undo history "
-      "(loading a file isn't something Ctrl+Z should partially unwind)",
-      loaded_canvas.document().isUndoAvailable() is False)
+check(
+    "a canvas right after loading a project also has no undo history "
+    "(loading a file isn't something Ctrl+Z should partially unwind)",
+    loaded_canvas.document().isUndoAvailable() is False,
+)
 
 print()
 if all(results):
