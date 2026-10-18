@@ -30,5 +30,6 @@ RUN pip install --no-cache-dir -r requirements.txt black
 # Copy the rest of your application code into the container workspace
 COPY . .
 
-# Run the formatting check FIRST, then execute your test loop if style passes
-CMD ["bash", "-c", "black --check . && python -c \"import glob, subprocess, sys;
+# Clean default execution array (overridden safely by the CI workflow parameters)
+CMD ["black", "--check", "."]
+

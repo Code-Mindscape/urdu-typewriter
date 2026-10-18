@@ -5,6 +5,7 @@ jobs:
   test-and-build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false # Prevents Windows from being aborted if Linux hits an error
       matrix:
         os: [ubuntu-24.04, windows-latest]
 
@@ -12,12 +13,15 @@ jobs:
       - uses: actions/checkout@v4
 
       # --- LINUX DOCKER EXECUTION ROUTE ---
-      # Automatically builds your Dockerfile recipe and runs style checks + tests
+      # Runs black and test files sequentially inside the built container environment
       - name: Run Code Style & Tests inside Docker (Ubuntu Only)
         if: matrix.os == 'ubuntu-24.04'
         run: |
           docker build -t urdu-typewriter-test .
-          docker run --env QT_QPA_PLATFORM=offscreen urdu-typewriter-test
+          echo "=== Running Code Style Check ==="
+          docker run urdu-typewriter-test black --check .
+          echo "=== Running Test Suite ==="
+          docker run urdu-typewriter-test python -c "import glob, subprocess, sys; [subprocess.run([sys.executable, t], check=True) for t in glob.glob('test_*.py') if 'svg_copy' not in t.lower()]"
 
       # --- WINDOWS NATIVE EXECUTION ROUTE ---
       - uses: actions/setup-python@v5
@@ -32,7 +36,6 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller Pillow black
 
-      # Safety Step: Ensures icons folder and basic image placeholders exist
       - name: Ensure Asset Folders Exist (Windows Only)
         if: matrix.os == 'windows-latest'
         shell: bash
@@ -45,7 +48,6 @@ jobs:
           if not os.path.exists('icons/appicon.ico'): Image.new('RGBA', (256, 256), color=(0,0,0,0)).save('icons/appicon.ico', format='ICO')
           "
 
-      # Runs black format validation first before checking individual code behavior
       - name: Run Code Style Check & Tests (Windows Only)
         if: matrix.os == 'windows-latest'
         env: 
